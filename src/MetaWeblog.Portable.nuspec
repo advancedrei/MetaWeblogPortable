@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
+    <metadata>
+        <id>MetaWeblog.Portable</id>
+        <version>0.9.0</version>
+        <title>MetaWeblog.Portable</title>
+        <authors>saveenr, AdvancedREI</authors>
+        <owners>AdvancedREI</owners>
+        <licenseUrl>http://www.ohloh.net/licenses/mslpl</licenseUrl>
+        <projectUrl>http://github.com/AdvancedREI/MetaWeblogPortable</projectUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>A Portable Class Library implementation of the MetaWeblog API. Forked from the MetaWeblogSharp project. Has support for saving connections and (.NET 4.5, Windows Phone 8, and Windows 8.x)</description>
+        <releaseNotes>0.9.0: First working release.</releaseNotes>
+        <copyright>Copyright © 2013 Saveen Reddy, 2013-2014 AdvancedREI, LLC.</copyright>
+        <tags>MetaWeblog, MetaWeblogAPI, XMLRPC, Windows Phone, PCL</tags>
+        <dependencies>
+            <dependency id="Microsoft.Net.Http" version="2.2.18" />
+            <dependency id="Newtonsoft.Json" version="5.0.8" />
+            <dependency id="PCL.Storage" version="0.9.1" />
+        </dependencies>
+    </metadata>
+    <files>
+      <file src="MetaWeblog.Portable\bin\Release\MetaWeblog.Portable.dll" target="lib\portable-net45+wp8+win8\MetaWeblog.Portable.dll" />
+      <file src="MetaWeblog.Portable\bin\Release\MetaWeblog.Portable.pdb" target="lib\portable-net45+wp8+win8\MetaWeblog.Portable.pdb" />
+      <file src="MetaWeblog.Portable\bin\Release\MetaWeblog.Portable.xml" target="lib\portable-net45+wp8+win8\MetaWeblog.Portable.xml" />
+      <file src="MetaWeblog.Portable\**\*.cs" exclude="**\obj\**\*.*" target="src" />
+    </files>
+</package>
