@@ -1,13 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using PCLStorage;
 
 namespace MetaWeblog.Portable
 {
+
+
+    /// <summary>
+    /// 
+    /// </summary>
     public class BlogConnectionInfo
     {
 
@@ -62,9 +66,9 @@ namespace MetaWeblog.Portable
         #endregion
 
         /// <summary>
-        /// 
+        /// Retrieves a list of all of the connections that have been saved to the LocalStorage cache.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A List of <see cref="BlogConnectionInfo"/> objects saved to LocalStorage.</returns>
         public static async Task<List<BlogConnectionInfo>> GetConnections()
         {
             var connections = new List<BlogConnectionInfo>();
@@ -81,9 +85,9 @@ namespace MetaWeblog.Portable
         }
 
         /// <summary>
-        /// 
+        /// Retrieves a specific connection from the LocalStorage cache.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A <see cref="BlogConnectionInfo"/> that was saved to LocalStorage.</returns>
         public static async Task<BlogConnectionInfo> GetConnection(string blogUrl)
         {
             var folder = await FileSystem.Current.LocalStorage.GetFolderAsync("Connections");
@@ -95,17 +99,16 @@ namespace MetaWeblog.Portable
         }
 
         /// <summary>
-        /// 
+        /// Saves this Connection to the LocalStorage cache.
         /// </summary>
-        /// <param name="filename"></param>
-        /// <returns></returns>
-        public async Task<bool> Save(string filename)
+        /// <returns>A boolean specifying whether or not the file was saved.</returns>
+        public async Task<bool> Save()
         {
             try
             {
                 var folder = await FileSystem.Current.LocalStorage.GetFolderAsync("Connections");
-                var uri = new Uri(BlogUrl + ".json");
-                var file = await folder.CreateFileAsync(uri.Host, CreationCollisionOption.OpenIfExists);
+                var uri = new Uri(BlogUrl);
+                var file = await folder.CreateFileAsync(uri.Host + ".json", CreationCollisionOption.OpenIfExists);
                 var contents = JsonConvert.SerializeObject(this, Formatting.Indented);
                 await file.WriteAllTextAsync(contents);
                 return true;
