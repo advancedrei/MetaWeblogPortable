@@ -2,43 +2,45 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
+using SXL = System.Xml.Linq;
 
 namespace MetaWeblog.Portable.XmlRpc
 {
     public class MethodResponse
     {
         public ParameterList Parameters { get; private set; }
-        
-        public MethodResponse(string content)
+
+        public MethodResponse()
         {
             this.Parameters = new ParameterList();
+        }
 
-            var lo = new LoadOptions();
+        public MethodResponse(string content) :
+            this()
+        {
+            SXL.XDocument xdoc;
+            MethodCall.ParseStringToParameters(content, this.Parameters, out xdoc);
+        }
 
-            var doc = XDocument.Parse(content,lo);
-            var root = doc.Root;
-            var fault_el = root.Element("fault");
-            if (fault_el != null)
+        public SXL.XDocument CreateDocument()
+        {
+            var doc = new SXL.XDocument();
+            var root = new SXL.XElement("methodResponse");
+
+            doc.Add(root);
+
+            var params_el = new SXL.XElement("params");
+            root.Add(params_el);
+
+            foreach (var p in this.Parameters)
             {
-                var f = Fault.ParseXml(fault_el);
+                var param_el = new SXL.XElement("param");
+                params_el.Add(param_el);
 
-                string msg = string.Format("XMLRPC FAULT [{0}]: \"{1}\"", f.FaultCode, f.FaultString);
-                var exc = new XmlRpcException(msg);
-                exc.Fault = f;
-
-                throw exc;
+                p.AddXmlElement(param_el);
             }
 
-            var params_el = root.GetElement("params");
-            var param_els = params_el.Elements("param").ToList();
-
-            foreach (var param_el in param_els)
-            {
-                var value_el = param_el.GetElement("value");
-
-                var val = XmlRpc.Value.ParseXml(value_el);
-                this.Parameters.Add( val );
-            }
+            return doc;
         }
     }
 }

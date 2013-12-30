@@ -119,6 +119,26 @@ namespace MetaWeblog.Portable
             }
         }
 
+        public MetaWeblog.Portable.XmlRpc.Struct GetStruct()
+        {
+            var struct_ = new MetaWeblog.Portable.XmlRpc.Struct();
+            if (this.DateCreated != null)
+            {
+                struct_["dateCreated"] = new MetaWeblog.Portable.XmlRpc.DateTimeValue(this.DateCreated.Value);                
+            }
+            struct_["description"] = new MetaWeblog.Portable.XmlRpc.StringValue(this.Description);
+            struct_["title"] = new MetaWeblog.Portable.XmlRpc.StringValue(this.Title);
+            //struct_["enclosure"] = ???
+            struct_["link"] = new MetaWeblog.Portable.XmlRpc.StringValue(this.Link);
+            //struct_["permalink"] = new MetaWeblog.Portable.XmlRpc.StringValue(this.Permalink);
+            struct_["postid"] = new MetaWeblog.Portable.XmlRpc.StringValue(this.PostId);
+            //struct_["source"] = ??
+            // struct_["wp_slug"] = first sentence ??
+            // struct_["mt_basename"] = first sentence ??            
+
+            return struct_;
+
+        }
         #endregion
 
     }
