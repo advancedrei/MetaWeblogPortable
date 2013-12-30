@@ -119,7 +119,7 @@ namespace MetaWeblog.Portable
             }
         }
 
-        public MetaWeblog.Portable.XmlRpc.Struct GetStruct()
+        public MetaWeblog.Portable.XmlRpc.Struct ToStruct()
         {
             var struct_ = new MetaWeblog.Portable.XmlRpc.Struct();
             if (this.DateCreated != null)

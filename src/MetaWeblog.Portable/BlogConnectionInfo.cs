@@ -119,8 +119,5 @@ namespace MetaWeblog.Portable
                 return false;
             }
         }
-        
-
-
     }
 }

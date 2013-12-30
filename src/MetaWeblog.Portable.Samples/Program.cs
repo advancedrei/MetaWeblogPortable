@@ -26,8 +26,6 @@ namespace MetaWeblog.Portable.Samples
         static void Main(string[] args)
         {
             GetListOfPosts();
-
-
         }
 
         static async void GetListOfPosts()
@@ -46,11 +44,16 @@ namespace MetaWeblog.Portable.Samples
         {
             string mydocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             string blog_xml = System.IO.Path.Combine(mydocs, "blog.xml");
-            var coninfo = Load (blog_xml);
+            var coninfo = Helpers.LoadBlogConnectionInfo(blog_xml);
             return coninfo;
         }
 
-        public static MP.BlogConnectionInfo Load(string filename)
+
+    }
+
+    public static class Helpers
+    {
+        public static MP.BlogConnectionInfo LoadBlogConnectionInfo(string filename)
         {
             var doc = System.Xml.Linq.XDocument.Load(filename);
             var root = doc.Root;
@@ -64,6 +67,36 @@ namespace MetaWeblog.Portable.Samples
             var coninfo = new BlogConnectionInfo(blogurl, metaWeblogUrl, blogId, username, password);
 
             return coninfo;
+        }
+
+        public static void SaveBlogConnectionInfo(MP.BlogConnectionInfo coninfo, string filename)
+        {
+            var doc = new System.Xml.Linq.XDocument();
+            var p = new System.Xml.Linq.XElement("blogconnectioninfo");
+            doc.Add(p);
+            p.Add(new System.Xml.Linq.XElement("blogurl", coninfo.BlogUrl));
+            p.Add(new System.Xml.Linq.XElement("blogid", coninfo.BlogId));
+            p.Add(new System.Xml.Linq.XElement("metaweblog_url", coninfo.MetaWeblogUrl));
+            p.Add(new System.Xml.Linq.XElement("username", coninfo.Username));
+            p.Add(new System.Xml.Linq.XElement("password", coninfo.Password));
+            doc.Save(filename);
+        }
+
+        public static void SerializeToXmlFile(MP.PostInfo[] posts, string filename)
+        {
+            var serializer = new System.Xml.Serialization.XmlSerializer(typeof(MP.PostInfo[]));
+            var textWriter = new System.IO.StreamWriter(filename);
+            serializer.Serialize(textWriter, posts);
+            textWriter.Close();
+        }
+
+        public static MP.PostInfo[] DeserializePostsFromXmlFile(string filename)
+        {
+            var fp = System.IO.File.OpenText(filename);
+            var posts_serializer = new System.Xml.Serialization.XmlSerializer(typeof(MP.PostInfo[]));
+            var loaded_posts = (MP.PostInfo[])posts_serializer.Deserialize(fp);
+            fp.Close();
+            return loaded_posts;
         }
 
     }

@@ -40,5 +40,25 @@
             f.RawData = fault_el.Document.ToString();
             return f;
         }
+
+        public System.Xml.Linq.XDocument CreateDocument()
+        {
+            var doc = new System.Xml.Linq.XDocument();
+            var root = new System.Xml.Linq.XElement("methodResponse");
+
+            doc.Add(root);
+
+            var f = new System.Xml.Linq.XElement("fault");
+
+            root.Add(f);
+
+
+            var struct_ = new XmlRpc.Struct();
+            struct_["faultCode"] = new XmlRpc.IntegerValue(this.FaultCode);
+            struct_["faultString"] = new XmlRpc.StringValue(this.FaultString);
+            struct_.AddXmlElement(f);
+
+            return doc;
+        }
     }
 }
