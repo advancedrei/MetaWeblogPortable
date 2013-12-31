@@ -161,9 +161,11 @@ namespace MetaWeblog.Portable.Server
                     var el_div = new System.Xml.Linq.XElement("div");
                     el_body.Add(el_div);
 
-                    el_div.Add( thepost.Description );
+                    el_div.Add( "$$$$$$$$$$" );
 
-                    write_string(context, xdoc.ToString(), 200);
+                    string html = xdoc.ToString();
+                    html = html.Replace("$$$$$$$$$$", thepost.Description);
+                    write_string(context, html, 200);
                     
                 }
                 
