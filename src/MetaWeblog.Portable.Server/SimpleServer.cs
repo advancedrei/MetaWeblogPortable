@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Xml.Linq;
 using MetaWeblog.Portable.XmlRpc;
 
 namespace MetaWeblog.Portable.Server
@@ -38,16 +39,16 @@ namespace MetaWeblog.Portable.Server
 
         private static async void Listen()
         {
-            log("Listen() started");
+            WriteLog("Listen() started");
             while (true)
             {
                 var context = await Listener.GetContextAsync();
                 Console.WriteLine("Client connected");
                 //Console.WriteLine(context.Request.AcceptTypes.ToString());
                 
-                log("Client Connected");
-                log("    Request Url: {0}",context.Request.Url);
-                log("    Request Url Absolute Path: {0}", context.Request.Url.AbsolutePath);
+                WriteLog("Client Connected");
+                WriteLog("    Request Url: {0}",context.Request.Url);
+                WriteLog("    Request Url Absolute Path: {0}", context.Request.Url.AbsolutePath);
                 ProcessRequest(context);
             }
 
@@ -56,15 +57,15 @@ namespace MetaWeblog.Portable.Server
 
         private static void ProcessRequest(System.Net.HttpListenerContext context)
         {
-            log("ProcessRequest() started");
+            WriteLog("ProcessRequest() started");
 
 
             if (context.Request.Url.AbsolutePath == "/metaweblogapi")
             {
-                log("    Request sent to metaweblog api - treating as XmlRpcCall");
+                WriteLog("    Request sent to metaweblog api - treating as XmlRpcCall");
                 string body = new System.IO.StreamReader(context.Request.InputStream).ReadToEnd();
-                log("    Read {0} characters from input stream", body.Length);
-                log("    Parsing body ");                
+                WriteLog("    Read {0} characters from input stream", body.Length);
+                WriteLog("    Parsing body ");                
                 var methodcall = MetaWeblog.Portable.XmlRpc.MethodCall.Parse(body);
 
 
@@ -98,98 +99,169 @@ namespace MetaWeblog.Portable.Server
 
         private static void handle_normal_request(HttpListenerContext context)
         {
-            log("treat as Non-XmlRpc request");
+            WriteLog("treat as Non-XmlRpc request");
 
             if (context.Request.Url.AbsolutePath == "/")
             {
-                log("Root page - print out blog contents");
-
-                var xdoc = XDocument();
-                var el_body = xdoc.Element("html").Element("body");
-                el_body.Add(new System.Xml.Linq.XElement("h1", "Blog Home"));
-
-                foreach (var post in SimpleServer.posts)
-                {
-                    var el_para = new System.Xml.Linq.XElement("p");
-                    el_body.Add(el_para);
-
-                    var el_text =
-                        new System.Xml.Linq.XText(post.DateCreated == null ? "No Publish Date" : post.DateCreated.Value.ToShortDateString());
-                    el_para.Add(el_text);
-
-                    var el_a = new System.Xml.Linq.XElement("a");
-                    el_a.SetAttributeValue("href", post.Link);
-                    el_a.Value = post.Title;
-                    el_para.Add(el_a);
-                }
-                write_string(context, xdoc.ToString(), 200);
+                handle_blog_home_page(context);
+            }
+            else if (context.Request.Url.AbsolutePath == "/archive" || context.Request.Url.AbsolutePath == "/archive/")
+            {
+                handle_blog_archive_page(context);
             }
             else if (context.Request.Url.AbsolutePath.StartsWith("/post/"))
             {
-                log("looking for a specific post");
-                var tokens = context.Request.Url.AbsolutePath.Split(new char[] { '/' });
-
-
-                string post_link = context.Request.Url.AbsolutePath;
-
-                log("postlink = {0}" , post_link);
-
-
-                PostInfo thepost = null;
-                foreach (var post in SimpleServer.posts)
-                {
-                    if (post.Link == post_link)
-                    {
-                        thepost = post;
-                    }
-                }
-
-                if (thepost == null)
-                {
-                    log("Root page - send 404");
-                    var xdoc = XDocument();
-                    var el_body = xdoc.Element("html").Element("body");
-                    el_body.Value = string.Format("Not found {0}", context.Request.Url.AbsolutePath);
-                    write_string(context, xdoc.ToString(), 404);
-                }
-                else
-                {
-                    var xdoc = XDocument();
-                    var el_body = xdoc.Element("html").Element("body");
-                    el_body.Add(new System.Xml.Linq.XElement("h1", thepost.Title));
-
-                    var el_div = new System.Xml.Linq.XElement("div");
-                    el_body.Add(el_div);
-
-                    el_div.Add( "$$$$$$$$$$" );
-
-                    string html = xdoc.ToString();
-                    html = html.Replace("$$$$$$$$$$", thepost.Description);
-                    write_string(context, html, 200);
-                    
-                }
-                
+                handle_post(context);
             }
             else
             {
-                log("Root page - send 404");
+                handle_404_not_found(context);
+            }
+        }
+
+        private static void handle_404_not_found(HttpListenerContext context)
+        {
+            WriteLog("Root page - send 404");
+            var xdoc = XDocument();
+            var el_body = xdoc.Element("html").Element("body");
+            el_body.Value = string.Format("Not found {0}", context.Request.Url.AbsolutePath);
+            WriteResponseString(context, xdoc.ToString(), 404);
+        }
+
+        private static void handle_post(HttpListenerContext context)
+        {
+            WriteLog("looking for a specific post");
+            var tokens = context.Request.Url.AbsolutePath.Split(new char[] {'/'});
+
+
+            string post_link = context.Request.Url.AbsolutePath;
+
+            WriteLog("postlink = {0}", post_link);
+
+
+            PostInfo thepost = null;
+            foreach (var post in SimpleServer.posts)
+            {
+                if (post.Link == post_link)
+                {
+                    thepost = post;
+                }
+            }
+
+            if (thepost == null)
+            {
+                WriteLog("Root page - send 404");
                 var xdoc = XDocument();
                 var el_body = xdoc.Element("html").Element("body");
                 el_body.Value = string.Format("Not found {0}", context.Request.Url.AbsolutePath);
-                write_string(context, xdoc.ToString(), 404);
+                WriteResponseString(context, xdoc.ToString(), 404);
             }
+            else
+            {
+                var xdoc = XDocument();
+                var el_body = xdoc.Element("html").Element("body");
+
+                var el_div_post = GetPostContentElement(thepost);
+
+                el_body.Add(el_div_post);
+
+
+                string html = xdoc.ToString();
+                html = html.Replace(GetReplacementString(thepost), thepost.Description);
+                WriteResponseString(context, html, 200);
+            }
+        }
+
+        private static XElement GetPostContentElement(PostInfo thepost)
+        {
+            var el_div_post = new System.Xml.Linq.XElement("div");
+            var el_blog_content = new System.Xml.Linq.XElement("h1", thepost.Title);
+            var el_div = new System.Xml.Linq.XElement("div");
+            el_div_post.Add(el_blog_content);
+            el_div_post.Add(el_div);
+            el_div.Add(GetReplacementString(thepost));
+            return el_div_post;
+        }
+
+        private static string GetReplacementString(PostInfo thepost)
+        {
+            string replacement_string = "$$$$$$$$$$" + thepost.Link + "$$$$$$$$$$";
+            return replacement_string;
+        }
+
+        private static void handle_blog_home_page(HttpListenerContext context)
+        {
+            WriteLog("Root page - print out blog contents");
+
+            var xdoc = XDocument();
+            var el_body = xdoc.Element("html").Element("body");
+            el_body.Add(new System.Xml.Linq.XElement("h1", "Blog Home"));
+
+            var el_para0 = new System.Xml.Linq.XElement("p");
+            el_body.Add(el_para0);
+
+            var el_a0 = new System.Xml.Linq.XElement("a");
+            el_a0.SetAttributeValue("href", "/archive");
+            el_a0.Value = "Archive";
+            el_para0.Add(el_a0);
+
+            foreach (var post in SimpleServer.posts)
+            {
+                var el_para = new System.Xml.Linq.XElement("p");
+                el_body.Add(el_para);
+
+                var post_content_el = GetPostContentElement(post);
+                el_body.Add(post_content_el);
+            }
+
+            string html = xdoc.ToString();
+            foreach (var post in SimpleServer.posts)
+            {
+                string replacement_string = GetReplacementString(post);
+                html = html.Replace(replacement_string, post.Description);
+            }
+
+            WriteResponseString(context, html, 200);
+        }
+
+
+        private static void handle_blog_archive_page(HttpListenerContext context)
+        {
+            WriteLog("Archive page - print out blog contents");
+
+            var xdoc = XDocument();
+            var el_body = xdoc.Element("html").Element("body");
+            el_body.Add(new System.Xml.Linq.XElement("h1", "Blog Home"));
+
+            foreach (var post in SimpleServer.posts)
+            {
+                var el_para = new System.Xml.Linq.XElement("p");
+                el_body.Add(el_para);
+
+                var el_text =
+                    new System.Xml.Linq.XText(post.DateCreated == null
+                        ? "No Publish Date"
+                        : post.DateCreated.Value.ToShortDateString());
+                el_para.Add(el_text);
+
+                var el_a = new System.Xml.Linq.XElement("a");
+                el_a.SetAttributeValue("href", post.Link);
+                el_a.Value = post.Title;
+                el_para.Add(el_a);
+            }
+            WriteResponseString(context, xdoc.ToString(), 200);
         }
 
         private static void handle_unknown_xmlrpc_method(HttpListenerContext context, MethodCall methodcall, string body)
         {
-            log("    Unhandled XmlRpcMethod {0}", methodcall.Name);
-            log("{0}", body);
+            WriteLog("    Unhandled XmlRpcMethod {0}", methodcall.Name);
+            WriteLog("{0}", body);
 
             var f = new XmlRpc.Fault();
             f.FaultCode = 0;
             f.FaultString = string.Format("unsupported method {0}", methodcall.Name);
 
-            write_string(context, f.CreateDocument().ToString(), 200);
+            WriteResponseString(context, f.CreateDocument().ToString(), 200);
         }
 
         private static void handle_metaWeblog_getPost(HttpListenerContext context, MethodCall methodcall)
@@ -205,7 +277,7 @@ namespace MetaWeblog.Portable.Server
                     var mr1 = new XmlRpc.MethodResponse();
                     var struct_ = p.ToStruct();
                     mr1.Parameters.Add(struct_);
-                    write_string(context, mr1.CreateDocument().ToString(), 200);
+                    WriteResponseString(context, mr1.CreateDocument().ToString(), 200);
                 }
             }
         }
@@ -223,7 +295,7 @@ namespace MetaWeblog.Portable.Server
             var post_categories = struct_.Get<XmlRpc.Array>("categories", null);
 
 
-            var link = get_post_if_from_title(post_title);
+            var link = TitleToPostId(post_title);
 
             var np = new PostInfo();
             np.Title = post_title.String;
@@ -242,10 +314,10 @@ namespace MetaWeblog.Portable.Server
 
             mr1.Parameters.Add(arr1);
 
-            write_string(context, mr1.CreateDocument().ToString(), 200);
+            WriteResponseString(context, mr1.CreateDocument().ToString(), 200);
         }
 
-        private static string get_post_if_from_title(StringValue post_title)
+        private static string TitleToPostId(StringValue post_title)
         {
             string safe_id = post_title.String.Trim();
             safe_id = safe_id.Replace(" ", "-");
@@ -271,7 +343,7 @@ namespace MetaWeblog.Portable.Server
             var method_response_xml = method_response.CreateDocument();
             var method_response_string = method_response_xml.ToString();
 
-            write_string(context, method_response_string, 200);
+            WriteResponseString(context, method_response_string, 200);
         }
 
         private static void handle_blogger_getUsersBlog(HttpListenerContext context)
@@ -280,7 +352,7 @@ namespace MetaWeblog.Portable.Server
             var method_response_xml = method_response.CreateDocument();
             var method_response_string = method_response_xml.ToString();
 
-            write_string(context, method_response_string, 200);
+            WriteResponseString(context, method_response_string, 200);
         }
 
         private static System.Xml.Linq.XDocument XDocument()
@@ -313,7 +385,7 @@ namespace MetaWeblog.Portable.Server
             return mr1;
         }
 
-        private static void write_string(HttpListenerContext context, string text, int status_code)
+        private static void WriteResponseString(HttpListenerContext context, string text, int status_code)
         {
             byte[] b = Encoding.UTF8.GetBytes(text);
             context.Response.StatusCode = status_code;
@@ -325,7 +397,7 @@ namespace MetaWeblog.Portable.Server
             context.Response.Close();
         }
 
-        private static void log(string fmt, params object[] objects)
+        private static void WriteLog(string fmt, params object[] objects)
         {
             string s = string.Format(fmt, objects);
             logf.Write(System.DateTime.Now);
