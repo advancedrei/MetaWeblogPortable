@@ -1,48 +1,55 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Net;
-using System.Text;
-using System.Xml.Linq;
-using MetaWeblog.Portable.XmlRpc;
+using SXL=System.Xml.Linq;
+using MP=MetaWeblog.Portable;
 
 namespace MetaWeblog.Portable.Server
 {
-    public static class SimpleServer
+    public class BlogServer
     {
-        public readonly static int xport = 14228;
-        private static readonly System.Net.HttpListener Listener = new System.Net.HttpListener();
-        public static List<UserBlogInfo> userblogs = new List<UserBlogInfo>();
-        public static List<PostInfo> posts = new List<PostInfo>();
-        public static string logfilename;
-        private static StreamWriter logf;
-        public static void Start()
+        private readonly System.Net.HttpListener HttpListener = new System.Net.HttpListener();
+        private readonly System.IO.StreamWriter LogStream;
+        private readonly string ServerUrl;
+
+        public readonly int ListeningPort = 14228;
+        public readonly string HostName = "localhost";
+        public readonly List<UserBlogInfo> BlogList = new List<UserBlogInfo>();
+        public readonly List<PostInfo> PostList = new List<PostInfo>();
+
+        public readonly string logfilename;
+
+        public BlogServer()
         {
+            var logfilename = GetLogFilename();
+            LogStream = System.IO.File.AppendText(logfilename);
+            LogStream.AutoFlush = true;
+            ServerUrl = string.Format("http://{0}:{1}/", HostName, ListeningPort);
+        }
 
-            string mydocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string logfilename = System.IO.Path.Combine(mydocs, "SimpleServer.txt");
-            logf = System.IO.File.AppendText(logfilename);
-            logf.AutoFlush = true;
-
-            string hostname = "127.0.0.1";
-            string url = string.Format("http://{0}:{1}/", hostname, xport);
-
-         
-            Listener.Prefixes.Add(url);
-            Listener.Start();
+        public void Start()
+        {
+            HttpListener.Prefixes.Add(ServerUrl);
+            HttpListener.Start();
             Listen();
-            Console.WriteLine("Listening...");
+            Console.WriteLine("{0} Listening...", this.GetType().Name );
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
         }
 
-        private static async void Listen()
+        private static string GetLogFilename()
         {
-            WriteLog("Listen() started");
+            string mydocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string logfilename = System.IO.Path.Combine(mydocs, "BlogServer.txt");
+            return logfilename;
+        }
+
+        private async void Listen()
+        {
+            WriteLog("{0}.Listen() started", this.GetType().Name);
             while (true)
             {
-                var context = await Listener.GetContextAsync();
+                var context = await HttpListener.GetContextAsync();
                 Console.WriteLine("Client connected");
                 //Console.WriteLine(context.Request.AcceptTypes.ToString());
                 
@@ -52,13 +59,12 @@ namespace MetaWeblog.Portable.Server
                 ProcessRequest(context);
             }
 
-            Listener.Close();
+            HttpListener.Close();
         }
 
-        private static void ProcessRequest(System.Net.HttpListenerContext context)
+        private void ProcessRequest(System.Net.HttpListenerContext context)
         {
-            WriteLog("ProcessRequest() started");
-
+            WriteLog("{0}.ProcessRequest() started", this.GetType().Name);
 
             if (context.Request.Url.AbsolutePath == "/metaweblogapi")
             {
@@ -97,7 +103,7 @@ namespace MetaWeblog.Portable.Server
             }
         }
 
-        private static void handle_normal_request(HttpListenerContext context)
+        private void handle_normal_request(System.Net.HttpListenerContext context)
         {
             WriteLog("treat as Non-XmlRpc request");
 
@@ -119,7 +125,7 @@ namespace MetaWeblog.Portable.Server
             }
         }
 
-        private static void handle_404_not_found(HttpListenerContext context)
+        private void handle_404_not_found(System.Net.HttpListenerContext context)
         {
             WriteLog("Root page - send 404");
             var xdoc = XDocument();
@@ -128,7 +134,7 @@ namespace MetaWeblog.Portable.Server
             WriteResponseString(context, xdoc.ToString(), 404);
         }
 
-        private static void handle_post(HttpListenerContext context)
+        private void handle_post(System.Net.HttpListenerContext context)
         {
             WriteLog("looking for a specific post");
             var tokens = context.Request.Url.AbsolutePath.Split(new char[] {'/'});
@@ -140,7 +146,7 @@ namespace MetaWeblog.Portable.Server
 
 
             PostInfo thepost = null;
-            foreach (var post in SimpleServer.posts)
+            foreach (var post in this.PostList)
             {
                 if (post.Link == post_link)
                 {
@@ -172,7 +178,7 @@ namespace MetaWeblog.Portable.Server
             }
         }
 
-        private static XElement GetPostContentElement(PostInfo thepost)
+        private SXL.XElement GetPostContentElement(PostInfo thepost)
         {
             var el_div_post = new System.Xml.Linq.XElement("div");
             var el_blog_content = new System.Xml.Linq.XElement("h1", thepost.Title);
@@ -183,17 +189,17 @@ namespace MetaWeblog.Portable.Server
             return el_div_post;
         }
 
-        private static string GetReplacementString(PostInfo thepost)
+        private string GetReplacementString(PostInfo thepost)
         {
             string replacement_string = "$$$$$$$$$$" + thepost.Link + "$$$$$$$$$$";
             return replacement_string;
         }
 
-        private static void handle_blog_home_page(HttpListenerContext context)
+        private void handle_blog_home_page(System.Net.HttpListenerContext context)
         {
             WriteLog("Root page - print out blog contents");
 
-            var xdoc = XDocument();
+            var xdoc = this.XDocument();
             var el_body = xdoc.Element("html").Element("body");
             el_body.Add(new System.Xml.Linq.XElement("h1", "Blog Home"));
 
@@ -205,7 +211,7 @@ namespace MetaWeblog.Portable.Server
             el_a0.Value = "Archive";
             el_para0.Add(el_a0);
 
-            foreach (var post in SimpleServer.posts)
+            foreach (var post in this.PostList)
             {
                 var el_para = new System.Xml.Linq.XElement("p");
                 el_body.Add(el_para);
@@ -215,7 +221,7 @@ namespace MetaWeblog.Portable.Server
             }
 
             string html = xdoc.ToString();
-            foreach (var post in SimpleServer.posts)
+            foreach (var post in this.PostList)
             {
                 string replacement_string = GetReplacementString(post);
                 html = html.Replace(replacement_string, post.Description);
@@ -225,7 +231,7 @@ namespace MetaWeblog.Portable.Server
         }
 
 
-        private static void handle_blog_archive_page(HttpListenerContext context)
+        private void handle_blog_archive_page(System.Net.HttpListenerContext context)
         {
             WriteLog("Archive page - print out blog contents");
 
@@ -233,7 +239,7 @@ namespace MetaWeblog.Portable.Server
             var el_body = xdoc.Element("html").Element("body");
             el_body.Add(new System.Xml.Linq.XElement("h1", "Blog Home"));
 
-            foreach (var post in SimpleServer.posts)
+            foreach (var post in this.PostList)
             {
                 var el_para = new System.Xml.Linq.XElement("p");
                 el_body.Add(el_para);
@@ -252,7 +258,7 @@ namespace MetaWeblog.Portable.Server
             WriteResponseString(context, xdoc.ToString(), 200);
         }
 
-        private static void handle_unknown_xmlrpc_method(HttpListenerContext context, MethodCall methodcall, string body)
+        private void handle_unknown_xmlrpc_method(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall, string body)
         {
             WriteLog("    Unhandled XmlRpcMethod {0}", methodcall.Name);
             WriteLog("{0}", body);
@@ -264,13 +270,13 @@ namespace MetaWeblog.Portable.Server
             WriteResponseString(context, f.CreateDocument().ToString(), 200);
         }
 
-        private static void handle_metaWeblog_getPost(HttpListenerContext context, MethodCall methodcall)
+        private void handle_metaWeblog_getPost(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
         {
             var postid = (XmlRpc.StringValue) methodcall.Parameters[0];
             var username = (XmlRpc.StringValue) methodcall.Parameters[1];
             var password = (XmlRpc.StringValue) methodcall.Parameters[2];
 
-            foreach (var p in SimpleServer.posts)
+            foreach (var p in this.PostList)
             {
                 if (p.PostId == postid.String)
                 {
@@ -282,7 +288,7 @@ namespace MetaWeblog.Portable.Server
             }
         }
 
-        private static void handle_metaWeblog_newPost(HttpListenerContext context, MethodCall methodcall)
+        private void handle_metaWeblog_newPost(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
         {
             var blogid = (XmlRpc.StringValue) methodcall.Parameters[0];
             var username = (XmlRpc.StringValue) methodcall.Parameters[1];
@@ -307,7 +313,7 @@ namespace MetaWeblog.Portable.Server
             np.PostId = System.DateTime.Now.Ticks.ToString();
             np.Permalink = np.Link;
 
-            SimpleServer.posts.Add(np);
+            this.PostList.Add(np);
 
             var mr1 = new XmlRpc.MethodResponse();
             var arr1 = new XmlRpc.StringValue(np.PostId);
@@ -317,7 +323,7 @@ namespace MetaWeblog.Portable.Server
             WriteResponseString(context, mr1.CreateDocument().ToString(), 200);
         }
 
-        private static string TitleToPostId(StringValue post_title)
+        private string TitleToPostId(MP.XmlRpc.StringValue post_title)
         {
             string safe_id = post_title.String.Trim();
             safe_id = safe_id.Replace(" ", "-");
@@ -337,25 +343,25 @@ namespace MetaWeblog.Portable.Server
             return link;
         }
 
-        private static void handle_metaWeblog_getRecentPosts(HttpListenerContext context)
+        private void handle_metaWeblog_getRecentPosts(System.Net.HttpListenerContext context)
         {
-            var method_response = BuildStructArrrayResponse(SimpleServer.posts.Select(i => i.ToStruct()));
+            var method_response = BuildStructArrrayResponse(this.PostList.Select(i => i.ToStruct()));
             var method_response_xml = method_response.CreateDocument();
             var method_response_string = method_response_xml.ToString();
 
             WriteResponseString(context, method_response_string, 200);
         }
 
-        private static void handle_blogger_getUsersBlog(HttpListenerContext context)
+        private void handle_blogger_getUsersBlog(System.Net.HttpListenerContext context)
         {
-            var method_response = BuildStructArrrayResponse(SimpleServer.userblogs.Select(i => i.ToStruct()));
+            var method_response = BuildStructArrrayResponse(this.BlogList.Select(i => i.ToStruct()));
             var method_response_xml = method_response.CreateDocument();
             var method_response_string = method_response_xml.ToString();
 
             WriteResponseString(context, method_response_string, 200);
         }
 
-        private static System.Xml.Linq.XDocument XDocument()
+        private System.Xml.Linq.XDocument XDocument()
         {
             var xdoc = new System.Xml.Linq.XDocument();
 
@@ -370,7 +376,7 @@ namespace MetaWeblog.Portable.Server
             return xdoc;
         }
 
-        public static MethodResponse BuildStructArrrayResponse(IEnumerable<XmlRpc.Struct> structs)
+        public MP.XmlRpc.MethodResponse BuildStructArrrayResponse(IEnumerable<XmlRpc.Struct> structs)
         {
             var mr1 = new XmlRpc.MethodResponse();
             var arr1 = new XmlRpc.Array();
@@ -385,9 +391,9 @@ namespace MetaWeblog.Portable.Server
             return mr1;
         }
 
-        private static void WriteResponseString(HttpListenerContext context, string text, int status_code)
+        private void WriteResponseString(System.Net.HttpListenerContext context, string text, int status_code)
         {
-            byte[] b = Encoding.UTF8.GetBytes(text);
+            byte[] b = System.Text.Encoding.UTF8.GetBytes(text);
             context.Response.StatusCode = status_code;
             context.Response.KeepAlive = false;
             context.Response.ContentLength64 = b.Length;
@@ -397,12 +403,12 @@ namespace MetaWeblog.Portable.Server
             context.Response.Close();
         }
 
-        private static void WriteLog(string fmt, params object[] objects)
+        private void WriteLog(string fmt, params object[] objects)
         {
             string s = string.Format(fmt, objects);
-            logf.Write(System.DateTime.Now);
-            logf.Write(" ");
-            logf.WriteLine(s);
+            LogStream.Write(System.DateTime.Now);
+            LogStream.Write(" ");
+            LogStream.WriteLine(s);
         }
     }
 }
