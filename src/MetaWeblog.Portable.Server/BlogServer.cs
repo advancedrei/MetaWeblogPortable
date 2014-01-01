@@ -10,34 +10,75 @@ namespace MetaWeblog.Portable.Server
     {
         private readonly System.Net.HttpListener HttpListener = new System.Net.HttpListener();
         private readonly System.IO.StreamWriter LogStream;
-        private readonly string ServerUrl;
+        private readonly string ServerUrlPrimary;
+        private readonly string ServerUrlSecondary;
+        private readonly List<UserBlogInfo> BlogList = new List<UserBlogInfo>();
+        private readonly List<PostInfo> PostList = new List<PostInfo>();
 
-        public readonly int ListeningPort = 14228;
         public readonly string HostName = Environment.MachineName.ToLower();
-        public readonly List<UserBlogInfo> BlogList = new List<UserBlogInfo>();
-        public readonly List<PostInfo> PostList = new List<PostInfo>();
+        public readonly string LogFilename;
+        public string BlogTitle;
 
-        public readonly string logfilename;
-        private string BlogTitle = "Blog Home";
+        public BlogServerOptions Options;
 
-        public BlogServer()
+        public BlogServer(BlogServerOptions options)
         {
-            var logfilename = GetLogFilename();
+            if (options == null)
+            {
+                throw new System.ArgumentNullException("options");
+            }
+            this.Options = options;
+
+            // Initialize the log
+            string logfilename = GetLogFilename();
+            Console.WriteLine("Log at: {0}", logfilename);
             LogStream = System.IO.File.AppendText(logfilename);
             LogStream.AutoFlush = true;
-            ServerUrl = string.Format("http://{0}:{1}/", HostName, ListeningPort);
+
+            // The Primary url is what will normally be used
+            // However the server supports using localhost as well
+            this.ServerUrlPrimary = string.Format("http://{0}:{1}/", HostName, this.Options.Port);
+            this.ServerUrlSecondary = string.Format("http://{0}:{1}/", "localhost", this.Options.Port);
+
+            // The title of the blog will be based on the class name
+            this.BlogTitle = this.GetType().Name;
+
+            // This server will contain a single blog
+            this.BlogList.Add(new UserBlogInfo("admin", this.ServerUrlPrimary, this.BlogTitle));            
+
+            // Add Dummy Content
+            if (this.Options.CreateDefaultPosts)
+            {
+                this.PostList.Add(new PostInfo { DateCreated = new System.DateTime(2012, 12, 2), Title = "1000 Amazing Uses for Staples", Description = "staples", PostId = "20", Link = "/post/1000AmazingUsesForStaples" });
+                this.PostList.Add(new PostInfo { DateCreated = new System.DateTime(2012, 1, 15), Title = "Why Pizza is Great", Description = "pizza", PostId = "10", Link = "/post/WhyPizzaIsGreat" });
+                this.PostList.Add(new PostInfo { DateCreated = new System.DateTime(2013, 4, 10), Title = "Sandwiches I have loved", Description = "d4", PostId = "sandwiches", Link = "/post/SandwichesIHaveLoved" });
+                this.PostList.Add(new PostInfo { DateCreated = new System.DateTime(2013, 3, 31), Title = "Useful Things You Can Do With a Giraffe", Description = "giraffe", PostId = "30", Link = "/post/UsefulThingsYouCanDoWithAGiraffe" });
+
+                SortPosts();
+            }
+        }
+
+        private void SortPosts()
+        {
+            var unpublished_dt = System.DateTime.Now;
+            this.PostList.Sort(
+                (x, y) =>
+                    y.DateCreated.GetValueOrDefault(unpublished_dt).CompareTo(x.DateCreated.GetValueOrDefault(unpublished_dt)));
         }
 
         public void Start()
         {
-            string prefix1 = this.ServerUrl;
-            string prefix2 = string.Format("http://{0}:{1}/", "localhost", ListeningPort);
+            Console.WriteLine("{0}", this.ServerUrlPrimary);
+            Console.WriteLine("{0}", this.ServerUrlSecondary);
 
-            Console.WriteLine("{0}", prefix1);
-            Console.WriteLine("{0}", prefix2);
+            HttpListener.Prefixes.Add(this.ServerUrlPrimary);
+            HttpListener.Prefixes.Add(this.ServerUrlSecondary);
+            
+            // IMPORTANT: If you aren't running this with elevated privileges
+            // then the Start() method below will throw an
+            // System.Net.HttpListenerException and will have "Access is denied"
+            // in its Additional Information
 
-            HttpListener.Prefixes.Add(prefix1);
-            HttpListener.Prefixes.Add(prefix2);
             HttpListener.Start();
             Listen();
             Console.WriteLine("{0} Listening...", this.GetType().Name );
@@ -45,10 +86,13 @@ namespace MetaWeblog.Portable.Server
             Console.ReadKey();
         }
 
-        private static string GetLogFilename()
+        private string GetLogFilename()
         {
+            // Get the absolute path to be used as the logfile
+            // note that the filename will be based on the class name
             string mydocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string logfilename = System.IO.Path.Combine(mydocs, "BlogServer.txt");
+            string basename = this.GetType().Name + ".txt";
+            string logfilename = System.IO.Path.Combine(mydocs, basename);
             return logfilename;
         }
 
@@ -62,8 +106,8 @@ namespace MetaWeblog.Portable.Server
                 //Console.WriteLine(context.Request.AcceptTypes.ToString());
                 
                 WriteLog("Client Connected");
-                WriteLog("    Request Url: {0}",context.Request.Url);
-                WriteLog("    Request Url Absolute Path: {0}", context.Request.Url.AbsolutePath);
+                WriteLog("Request Url: {0}",context.Request.Url);
+                WriteLog("Request Url Absolute Path: {0}", context.Request.Url.AbsolutePath);
                 ProcessRequest(context);
             }
 
@@ -76,10 +120,10 @@ namespace MetaWeblog.Portable.Server
 
             if (context.Request.Url.AbsolutePath == "/metaweblogapi")
             {
-                WriteLog("    Request sent to metaweblog api - treating as XmlRpcCall");
+                WriteLog("Request sent to metaweblog api - treating as XmlRpcCall");
                 string body = new System.IO.StreamReader(context.Request.InputStream).ReadToEnd();
-                WriteLog("    Read {0} characters from input stream", body.Length);
-                WriteLog("    Parsing body ");                
+                WriteLog("Read {0} characters from input stream", body.Length);
+                WriteLog("Parsing body ");                
                 var methodcall = MetaWeblog.Portable.XmlRpc.MethodCall.Parse(body);
 
 
@@ -202,7 +246,7 @@ namespace MetaWeblog.Portable.Server
 
             var xdoc = this.CreateHtmlDom();
             var el_body = xdoc.Element("html").Element("body");
-            el_body.AddH1Element(this.BlogTitle);
+            var el_title = el_body.AddH1Element(this.BlogTitle);
 
             var el_para0 = el_body.AddParagraphElement();
 
@@ -305,6 +349,7 @@ namespace MetaWeblog.Portable.Server
             np.Permalink = np.Link;
 
             this.PostList.Add(np);
+            SortPosts();
 
             var mr1 = new XmlRpc.MethodResponse();
             var arr1 = new XmlRpc.StringValue(np.PostId);
@@ -365,9 +410,7 @@ namespace MetaWeblog.Portable.Server
             var el_style = new System.Xml.Linq.XElement("style");
             el_head.Add(el_style);
 
-            el_style.Value = @"
-   html { font-family: ""Arial""; }
-";
+            el_style.Value = this.Options.StyleSheet;
 
             var el_body = new System.Xml.Linq.XElement("body");
             el_html.Add(el_body);
@@ -408,41 +451,5 @@ namespace MetaWeblog.Portable.Server
             LogStream.Write(" ");
             LogStream.WriteLine(s);
         }
-    }
-
-
-    public static class SXLExtensions
-    {
-        public static SXL.XElement AddDivElement(this SXL.XElement parent)
-        {
-            var el_div = new System.Xml.Linq.XElement("div");
-            parent.Add(el_div);
-            return el_div;
-        }
-
-        public static SXL.XElement AddH1Element(this SXL.XElement parent, string text)
-        {
-            var el_h1 = new System.Xml.Linq.XElement("h1", text);
-            parent.Add(el_h1);
-            return el_h1;
-        }
-
-        public static SXL.XElement AddAnchorElement(this SXL.XElement parent, string href, string text)
-        {
-            var el_anchor = new SXL.XElement("a");
-            el_anchor.SetAttributeValue("href", href);
-            el_anchor.Value = text;
-            parent.Add(el_anchor);
-            return el_anchor;
-        }
-
-        public static SXL.XElement AddParagraphElement(this SXL.XElement el_body)
-        {
-            var el_para = new System.Xml.Linq.XElement("p");
-            el_body.Add(el_para);
-            return el_para;
-        }
-
-       
     }
 }
