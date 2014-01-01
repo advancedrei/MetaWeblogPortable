@@ -13,11 +13,12 @@ namespace MetaWeblog.Portable.Server
         private readonly string ServerUrl;
 
         public readonly int ListeningPort = 14228;
-        public readonly string HostName = "localhost";
+        public readonly string HostName = Environment.MachineName.ToLower();
         public readonly List<UserBlogInfo> BlogList = new List<UserBlogInfo>();
         public readonly List<PostInfo> PostList = new List<PostInfo>();
 
         public readonly string logfilename;
+        private string BlogTitle = "Blog Home";
 
         public BlogServer()
         {
@@ -29,7 +30,14 @@ namespace MetaWeblog.Portable.Server
 
         public void Start()
         {
-            HttpListener.Prefixes.Add(ServerUrl);
+            string prefix1 = this.ServerUrl;
+            string prefix2 = string.Format("http://{0}:{1}/", "localhost", ListeningPort);
+
+            Console.WriteLine("{0}", prefix1);
+            Console.WriteLine("{0}", prefix2);
+
+            HttpListener.Prefixes.Add(prefix1);
+            HttpListener.Prefixes.Add(prefix2);
             HttpListener.Start();
             Listen();
             Console.WriteLine("{0} Listening...", this.GetType().Name );
@@ -128,7 +136,7 @@ namespace MetaWeblog.Portable.Server
         private void handle_404_not_found(System.Net.HttpListenerContext context)
         {
             WriteLog("Root page - send 404");
-            var xdoc = XDocument();
+            var xdoc = CreateHtmlDom();
             var el_body = xdoc.Element("html").Element("body");
             el_body.Value = string.Format("Not found {0}", context.Request.Url.AbsolutePath);
             WriteResponseString(context, xdoc.ToString(), 404);
@@ -139,11 +147,8 @@ namespace MetaWeblog.Portable.Server
             WriteLog("looking for a specific post");
             var tokens = context.Request.Url.AbsolutePath.Split(new char[] {'/'});
 
-
             string post_link = context.Request.Url.AbsolutePath;
-
             WriteLog("postlink = {0}", post_link);
-
 
             PostInfo thepost = null;
             foreach (var post in this.PostList)
@@ -157,21 +162,18 @@ namespace MetaWeblog.Portable.Server
             if (thepost == null)
             {
                 WriteLog("Root page - send 404");
-                var xdoc = XDocument();
+                var xdoc = CreateHtmlDom();
                 var el_body = xdoc.Element("html").Element("body");
                 el_body.Value = string.Format("Not found {0}", context.Request.Url.AbsolutePath);
                 WriteResponseString(context, xdoc.ToString(), 404);
             }
             else
             {
-                var xdoc = XDocument();
+                var xdoc = CreateHtmlDom();
                 var el_body = xdoc.Element("html").Element("body");
-
                 var el_div_post = GetPostContentElement(thepost);
-
                 el_body.Add(el_div_post);
-
-
+                
                 string html = xdoc.ToString();
                 html = html.Replace(GetReplacementString(thepost), thepost.Description);
                 WriteResponseString(context, html, 200);
@@ -181,10 +183,9 @@ namespace MetaWeblog.Portable.Server
         private SXL.XElement GetPostContentElement(PostInfo thepost)
         {
             var el_div_post = new System.Xml.Linq.XElement("div");
-            var el_blog_content = new System.Xml.Linq.XElement("h1", thepost.Title);
-            var el_div = new System.Xml.Linq.XElement("div");
-            el_div_post.Add(el_blog_content);
-            el_div_post.Add(el_div);
+            var el_blog_content = el_div_post.AddH1Element(thepost.Title);
+            var el_div = el_div_post.AddDivElement();
+
             el_div.Add(GetReplacementString(thepost));
             return el_div_post;
         }
@@ -199,22 +200,17 @@ namespace MetaWeblog.Portable.Server
         {
             WriteLog("Root page - print out blog contents");
 
-            var xdoc = this.XDocument();
+            var xdoc = this.CreateHtmlDom();
             var el_body = xdoc.Element("html").Element("body");
-            el_body.Add(new System.Xml.Linq.XElement("h1", "Blog Home"));
+            el_body.AddH1Element(this.BlogTitle);
 
-            var el_para0 = new System.Xml.Linq.XElement("p");
-            el_body.Add(el_para0);
+            var el_para0 = el_body.AddParagraphElement();
 
-            var el_a0 = new System.Xml.Linq.XElement("a");
-            el_a0.SetAttributeValue("href", "/archive");
-            el_a0.Value = "Archive";
-            el_para0.Add(el_a0);
+            el_para0.AddAnchorElement("/archive", "Archive");
 
             foreach (var post in this.PostList)
             {
-                var el_para = new System.Xml.Linq.XElement("p");
-                el_body.Add(el_para);
+                var el_para = el_body.AddParagraphElement();
 
                 var post_content_el = GetPostContentElement(post);
                 el_body.Add(post_content_el);
@@ -235,14 +231,13 @@ namespace MetaWeblog.Portable.Server
         {
             WriteLog("Archive page - print out blog contents");
 
-            var xdoc = XDocument();
+            var xdoc = CreateHtmlDom();
             var el_body = xdoc.Element("html").Element("body");
-            el_body.Add(new System.Xml.Linq.XElement("h1", "Blog Home"));
+            el_body.AddH1Element(this.BlogTitle);
 
             foreach (var post in this.PostList)
             {
-                var el_para = new System.Xml.Linq.XElement("p");
-                el_body.Add(el_para);
+                var el_para = el_body.AddParagraphElement();
 
                 var el_text =
                     new System.Xml.Linq.XText(post.DateCreated == null
@@ -250,10 +245,7 @@ namespace MetaWeblog.Portable.Server
                         : post.DateCreated.Value.ToShortDateString());
                 el_para.Add(el_text);
 
-                var el_a = new System.Xml.Linq.XElement("a");
-                el_a.SetAttributeValue("href", post.Link);
-                el_a.Value = post.Title;
-                el_para.Add(el_a);
+                el_para.AddAnchorElement(post.Link, post.Title);
             }
             WriteResponseString(context, xdoc.ToString(), 200);
         }
@@ -295,7 +287,6 @@ namespace MetaWeblog.Portable.Server
             var password = (XmlRpc.StringValue) methodcall.Parameters[2];
             var struct_ = (XmlRpc.Struct) methodcall.Parameters[3];
             var post_status = (XmlRpc.BooleanValue) methodcall.Parameters[4];
-
             var post_title = struct_.Get<XmlRpc.StringValue>("title");
             var post_description = struct_.Get<XmlRpc.StringValue>("description");
             var post_categories = struct_.Get<XmlRpc.Array>("categories", null);
@@ -361,7 +352,7 @@ namespace MetaWeblog.Portable.Server
             WriteResponseString(context, method_response_string, 200);
         }
 
-        private System.Xml.Linq.XDocument XDocument()
+        private System.Xml.Linq.XDocument CreateHtmlDom()
         {
             var xdoc = new System.Xml.Linq.XDocument();
 
@@ -371,6 +362,13 @@ namespace MetaWeblog.Portable.Server
             var el_head = new System.Xml.Linq.XElement("head");
             el_html.Add(el_head);
 
+            var el_style = new System.Xml.Linq.XElement("style");
+            el_head.Add(el_style);
+
+            el_style.Value = @"
+   html { font-family: ""Arial""; }
+";
+
             var el_body = new System.Xml.Linq.XElement("body");
             el_html.Add(el_body);
             return xdoc;
@@ -378,28 +376,28 @@ namespace MetaWeblog.Portable.Server
 
         public MP.XmlRpc.MethodResponse BuildStructArrrayResponse(IEnumerable<XmlRpc.Struct> structs)
         {
-            var mr1 = new XmlRpc.MethodResponse();
-            var arr1 = new XmlRpc.Array();
+            var method_response = new XmlRpc.MethodResponse();
+            var arr = new XmlRpc.Array();
 
-            foreach (var i in structs)
+            foreach (var struct_ in structs)
             {
-                arr1.Add(i);
+                arr.Add(struct_);
             }
 
-            mr1.Parameters.Add(arr1);
+            method_response.Parameters.Add(arr);
 
-            return mr1;
+            return method_response;
         }
 
         private void WriteResponseString(System.Net.HttpListenerContext context, string text, int status_code)
         {
-            byte[] b = System.Text.Encoding.UTF8.GetBytes(text);
+            byte[] bytes = System.Text.Encoding.UTF8.GetBytes(text);
             context.Response.StatusCode = status_code;
             context.Response.KeepAlive = false;
-            context.Response.ContentLength64 = b.Length;
+            context.Response.ContentLength64 = bytes.Length;
 
             var output = context.Response.OutputStream;
-            output.Write(b, 0, b.Length);
+            output.Write(bytes, 0, bytes.Length);
             context.Response.Close();
         }
 
@@ -410,5 +408,41 @@ namespace MetaWeblog.Portable.Server
             LogStream.Write(" ");
             LogStream.WriteLine(s);
         }
+    }
+
+
+    public static class SXLExtensions
+    {
+        public static SXL.XElement AddDivElement(this SXL.XElement parent)
+        {
+            var el_div = new System.Xml.Linq.XElement("div");
+            parent.Add(el_div);
+            return el_div;
+        }
+
+        public static SXL.XElement AddH1Element(this SXL.XElement parent, string text)
+        {
+            var el_h1 = new System.Xml.Linq.XElement("h1", text);
+            parent.Add(el_h1);
+            return el_h1;
+        }
+
+        public static SXL.XElement AddAnchorElement(this SXL.XElement parent, string href, string text)
+        {
+            var el_anchor = new SXL.XElement("a");
+            el_anchor.SetAttributeValue("href", href);
+            el_anchor.Value = text;
+            parent.Add(el_anchor);
+            return el_anchor;
+        }
+
+        public static SXL.XElement AddParagraphElement(this SXL.XElement el_body)
+        {
+            var el_para = new System.Xml.Linq.XElement("p");
+            el_body.Add(el_para);
+            return el_para;
+        }
+
+       
     }
 }
