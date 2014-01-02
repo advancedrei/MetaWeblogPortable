@@ -316,10 +316,10 @@ namespace MetaWeblog.Portable.Server
             {
                 if (p.PostId == postid.String)
                 {
-                    var mr1 = new XmlRpc.MethodResponse();
+                    var method_response = new XmlRpc.MethodResponse();
                     var struct_ = p.ToStruct();
-                    mr1.Parameters.Add(struct_);
-                    WriteResponseString(context, mr1.CreateDocument().ToString(), 200);
+                    method_response.Parameters.Add(struct_);
+                    WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
                 }
             }
         }
@@ -351,12 +351,10 @@ namespace MetaWeblog.Portable.Server
             this.PostList.Add(np);
             SortPosts();
 
-            var mr1 = new XmlRpc.MethodResponse();
-            var arr1 = new XmlRpc.StringValue(np.PostId);
+            var method_response = new XmlRpc.MethodResponse();
+            method_response.Parameters.Add(np.PostId);
 
-            mr1.Parameters.Add(arr1);
-
-            WriteResponseString(context, mr1.CreateDocument().ToString(), 200);
+            WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
         }
 
         private string TitleToPostId(MP.XmlRpc.StringValue post_title)
