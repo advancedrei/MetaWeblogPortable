@@ -49,10 +49,10 @@ namespace MetaWeblog.Portable.Server
             // Add Dummy Content
             if (this.Options.CreateDefaultPosts)
             {
-                this.PostList.Add(new PostInfo { DateCreated = new System.DateTime(2012, 12, 2), Title = "1000 Amazing Uses for Staples", Description = "staples", PostId = "20", Link = "/post/1000AmazingUsesForStaples" });
-                this.PostList.Add(new PostInfo { DateCreated = new System.DateTime(2012, 1, 15), Title = "Why Pizza is Great", Description = "pizza", PostId = "10", Link = "/post/WhyPizzaIsGreat" });
-                this.PostList.Add(new PostInfo { DateCreated = new System.DateTime(2013, 4, 10), Title = "Sandwiches I have loved", Description = "d4", PostId = "sandwiches", Link = "/post/SandwichesIHaveLoved" });
-                this.PostList.Add(new PostInfo { DateCreated = new System.DateTime(2013, 3, 31), Title = "Useful Things You Can Do With a Giraffe", Description = "giraffe", PostId = "30", Link = "/post/UsefulThingsYouCanDoWithAGiraffe" });
+                this.PostList.Add(new System.DateTime(2012, 12, 2), "1000 Amazing Uses for Staples", "staples", true);
+                this.PostList.Add(new System.DateTime(2012, 1, 15), "Why Pizza is Great", "pizza", true);
+                this.PostList.Add(new System.DateTime(2013, 4, 10), "Sandwiches I have loved", "sandwiches", true);
+                this.PostList.Add(new System.DateTime(2013, 3, 31), "Useful Things You Can Do With a Giraffe", "giraffe", true );
             }
         }
 
@@ -108,13 +108,15 @@ namespace MetaWeblog.Portable.Server
         {
             WriteLog("{0}.ProcessRequest() started", this.GetType().Name);
 
-            if (context.Request.Url.AbsolutePath == "/metaweblogapi")
+            if (context.Request.Url.AbsolutePath == this.Options.MetaWeblogUrl)
             {
+
                 WriteLog("Request sent to metaweblog api - treating as XmlRpcCall");
                 string body = new System.IO.StreamReader(context.Request.InputStream).ReadToEnd();
                 WriteLog("Read {0} characters from input stream", body.Length);
                 WriteLog("Parsing body ");                
                 var methodcall = MetaWeblog.Portable.XmlRpc.MethodCall.Parse(body);
+                WriteLog("METHODCALL {0}", methodcall);
 
 
                 Console.WriteLine("Method Name: {0}", methodcall.Name);
@@ -153,11 +155,11 @@ namespace MetaWeblog.Portable.Server
             {
                 handle_blog_home_page(context);
             }
-            else if (context.Request.Url.AbsolutePath == "/archive" || context.Request.Url.AbsolutePath == "/archive/")
+            else if (context.Request.Url.AbsolutePath == this.Options.ArchiveUrl)
             {
                 handle_blog_archive_page(context);
             }
-            else if (context.Request.Url.AbsolutePath.StartsWith("/post/"))
+            else if (context.Request.Url.AbsolutePath.StartsWith(this.Options.PostUrl + "/"))
             {
                 handle_post(context);
             }
@@ -286,7 +288,7 @@ namespace MetaWeblog.Portable.Server
 
         private void handle_unknown_xmlrpc_method(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall, string body)
         {
-            WriteLog("    Unhandled XmlRpcMethod {0}", methodcall.Name);
+            WriteLog("Unhandled XmlRpcMethod {0}", methodcall.Name);
             WriteLog("{0}", body);
 
             var f = new XmlRpc.Fault();
@@ -302,7 +304,8 @@ namespace MetaWeblog.Portable.Server
             var username = (XmlRpc.StringValue) methodcall.Parameters[1];
             var password = (XmlRpc.StringValue) methodcall.Parameters[2];
 
-            foreach (var p in this.PostList)
+            PostInfo post = null;
+            foreach (var p in this.PostList.items)
             {
                 if (p.PostId == postid.String)
                 {
@@ -310,7 +313,14 @@ namespace MetaWeblog.Portable.Server
                     var struct_ = p.ToStruct();
                     method_response.Parameters.Add(struct_);
                     WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
+                    post = p;
+                    break;
                 }
+            }
+
+            if (post == null)
+            {
+                throw new System.ArgumentException("Post Not found");
             }
         }
 
@@ -325,20 +335,7 @@ namespace MetaWeblog.Portable.Server
             var post_description = struct_.Get<XmlRpc.StringValue>("description");
             var post_categories = struct_.Get<XmlRpc.Array>("categories", null);
 
-
-            var link = TitleToPostId(post_title);
-
-            var np = new PostInfo();
-            np.Title = post_title.String;
-            np.Description = post_description.String;
-            //np.Categories??
-            np.DateCreated = System.DateTime.Now;
-            np.Link = link;
-            np.Permalink = link;
-            np.PostId = System.DateTime.Now.Ticks.ToString();
-            np.Permalink = np.Link;
-
-            this.PostList.Add(np);
+            var np = this.PostList.Add(null, post_title.String, post_description.String, true);
 
             var method_response = new XmlRpc.MethodResponse();
             method_response.Parameters.Add(np.PostId);
@@ -428,7 +425,7 @@ namespace MetaWeblog.Portable.Server
 
             var output = context.Response.OutputStream;
             output.Write(bytes, 0, bytes.Length);
-            context.Response.Close();
+            context.Response.Close();                
         }
 
         private void WriteLog(string fmt, params object[] objects)

@@ -6,5 +6,9 @@ namespace MetaWeblog.Portable.Server
         public bool CreateDefaultPosts = false;
         public string StyleSheet = @"
 html { font-family: ""Arial""; }";
+
+        public string MetaWeblogUrl = "/metaweblogapi";
+        public string ArchiveUrl = "/archive";
+        public string PostUrl = "/post";
     }
 }

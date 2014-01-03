@@ -12,7 +12,6 @@ namespace MetaWeblog.Portable.Server
             options.CreateDefaultPosts = true;
             var blog_server = new BlogServer(options);
             blog_server.Start();
-
         }
     }
 }
