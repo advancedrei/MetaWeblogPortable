@@ -51,10 +51,10 @@ namespace MetaWeblog.Portable.Server
             // Add Dummy Content
             if (this.Options.CreateDefaultPosts)
             {
-            var cats1 = new[] {"sports,biology"};
-            var cats2 = new[] {"sports"};
-            var cats3 = new[] {"sports,food"};
-            var cats4 = new[] {""};
+            var cats1 = new[] {"sports","biology", "office supplies"};
+            var cats2 = new[] {"food"};
+            var cats3 = new[] {"food" };
+            var cats4 = new[] {"biology"};
 
                 this.PostList.Add(new System.DateTime(2012, 12, 2), "1000 Amazing Uses for Staples", "staples", cats1, true);
                 this.PostList.Add(new System.DateTime(2012, 1, 15), "Why Pizza is Great", "pizza", cats2, true);
@@ -224,6 +224,7 @@ namespace MetaWeblog.Portable.Server
                 var xdoc = CreateHtmlDom();
                 var el_body = xdoc.Element("html").Element("body");
                 var el_div_post = GetPostContentElement(thepost);
+
                 el_body.Add(el_div_post);
                 
                 string html = xdoc.ToString();
@@ -236,6 +237,7 @@ namespace MetaWeblog.Portable.Server
         {
             var el_div_post = new System.Xml.Linq.XElement("div");
             var el_blog_content = el_div_post.AddH1Element(thepost.Title);
+            var el_para_cats = el_div_post.AddParagraphElement(string.Join(",", thepost.Categories));
             var el_div = el_div_post.AddDivElement();
 
             el_div.Add(GetReplacementString(thepost));
@@ -263,7 +265,6 @@ namespace MetaWeblog.Portable.Server
             foreach (var post in this.PostList)
             {
                 var el_para = el_body.AddParagraphElement();
-
                 var post_content_el = GetPostContentElement(post);
                 el_body.Add(post_content_el);
             }
@@ -290,6 +291,7 @@ namespace MetaWeblog.Portable.Server
             foreach (var post in this.PostList)
             {
                 var el_para = el_body.AddParagraphElement();
+                var el_para_cats = el_body.AddParagraphElement(string.Join(",", post.Categories));
 
                 var el_text =
                     new System.Xml.Linq.XText(post.DateCreated == null

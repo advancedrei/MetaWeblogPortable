@@ -32,6 +32,14 @@ namespace MetaWeblog.Portable.Server
             return el_para;
         }
 
+        public static System.Xml.Linq.XElement AddParagraphElement(this System.Xml.Linq.XElement el_body, string text)
+        {
+            var el_para = new System.Xml.Linq.XElement("p");
+            el_body.Add(el_para);
+            el_para.Value = text;
+            return el_para;
+        }
+
        
     }
 }
