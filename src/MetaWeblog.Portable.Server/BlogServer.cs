@@ -51,15 +51,18 @@ namespace MetaWeblog.Portable.Server
             // Add Dummy Content
             if (this.Options.CreateDefaultPosts)
             {
-            var cats1 = new[] {"sports","biology", "office supplies"};
-            var cats2 = new[] {"food"};
-            var cats3 = new[] {"food" };
-            var cats4 = new[] {"biology"};
+                var cats1 = new[] {"sports","biology", "office supplies"};
+                var cats2 = new[] {"food"};
+                var cats3 = new[] {"food" };
+                var cats4 = new[] {"biology"};
 
-                this.PostList.Add(new System.DateTime(2012, 12, 2), "1000 Amazing Uses for Staples", "staples", cats1, true);
-                this.PostList.Add(new System.DateTime(2012, 1, 15), "Why Pizza is Great", "pizza", cats2, true);
-                this.PostList.Add(new System.DateTime(2013, 4, 10), "Sandwiches I have loved", "sandwiches", cats3, true);
-                this.PostList.Add(new System.DateTime(2013, 3, 31), "Useful Things You Can Do With a Giraffe", "giraffe", cats3, true);
+                string lipsum =
+                    "Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
+
+                this.PostList.Add(new System.DateTime(2012, 12, 2), "1000 Amazing Uses for Staples", lipsum, cats1, true);
+                this.PostList.Add(new System.DateTime(2012, 1, 15), "Why Pizza is Great", lipsum, cats2, true);
+                this.PostList.Add(new System.DateTime(2013, 4, 10), "Sandwiches I have loved", lipsum, cats3, true);
+                this.PostList.Add(new System.DateTime(2013, 3, 31), "Useful Things You Can Do With a Giraffe", lipsum, cats3, true);
             }
         }
 
@@ -237,7 +240,7 @@ namespace MetaWeblog.Portable.Server
         {
             var el_div_post = new System.Xml.Linq.XElement("div");
             var el_blog_content = el_div_post.AddH1Element(thepost.Title);
-            var el_para_cats = el_div_post.AddParagraphElement(string.Join(",", thepost.Categories));
+            var el_para_cats = el_div_post.AddParagraphElement("Categories: " + string.Join(",", thepost.Categories));
             var el_div = el_div_post.AddDivElement();
 
             el_div.Add(GetReplacementString(thepost));
@@ -288,11 +291,10 @@ namespace MetaWeblog.Portable.Server
             var el_body = xdoc.Element("html").Element("body");
             el_body.AddH1Element(this.BlogTitle);
 
+            el_body.AddAnchorElement("/", "Home");
             foreach (var post in this.PostList)
             {
                 var el_para = el_body.AddParagraphElement();
-                var el_para_cats = el_body.AddParagraphElement(string.Join(",", post.Categories));
-
                 var el_text =
                     new System.Xml.Linq.XText(post.DateCreated == null
                         ? "No Publish Date"
@@ -321,6 +323,9 @@ namespace MetaWeblog.Portable.Server
             var postid = (XmlRpc.StringValue) methodcall.Parameters[0];
             var username = (XmlRpc.StringValue) methodcall.Parameters[1];
             var password = (XmlRpc.StringValue) methodcall.Parameters[2];
+
+            this.WriteLog("PostId = {0}", postid.String);
+            this.WriteLog("Username = {0}", username.String);
 
             var post = this.PostList.TryGetPostById(postid.String);
 
@@ -358,16 +363,22 @@ namespace MetaWeblog.Portable.Server
             var blogid = (XmlRpc.StringValue) methodcall.Parameters[0];
             var username = (XmlRpc.StringValue) methodcall.Parameters[1];
             var password = (XmlRpc.StringValue) methodcall.Parameters[2];
-            var struct_ = (XmlRpc.Struct) methodcall.Parameters[3];
+
+            this.WriteLog("BlogId = {0}",blogid.String);
+            this.WriteLog("Username = {0}", username.String);
+
+            var struct_ = (XmlRpc.Struct)methodcall.Parameters[3];
             var publish = (XmlRpc.BooleanValue) methodcall.Parameters[4];
-            var post_title = struct_.Get<XmlRpc.StringValue>("title");
+            var post_title = struct_.Get<XmlRpc.StringValue>("title").String;
+            post_title = clean_post_title(post_title);
+
             var post_description = struct_.Get<XmlRpc.StringValue>("description");
             var post_categories = struct_.Get<XmlRpc.Array>("categories", null);
 
             var cats = GetCategoriesFromArray(post_categories);
 
             this.WriteLog( " Categories {0}", string.Join(",",cats));
-            var new_post = this.PostList.Add(null, post_title.String, post_description.String, cats, true);
+            var new_post = this.PostList.Add(null, post_title, post_description.String, cats, publish.Boolean);
 
             var method_response = new XmlRpc.MethodResponse();
             method_response.Parameters.Add(new_post.PostId);
@@ -395,6 +406,15 @@ namespace MetaWeblog.Portable.Server
             return cats;
         }
 
+        private string clean_post_title(string title)
+        {
+            string new_title = title;
+            new_title = new_title.Replace("\t", " ");
+            new_title = new_title.Replace("  ", " ");
+            new_title = new_title.Trim();
+            return new_title;
+        }
+
         private void handle_metaWeblog_editPost(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
         {
             var postid = (XmlRpc.StringValue)methodcall.Parameters[0];
@@ -402,6 +422,10 @@ namespace MetaWeblog.Portable.Server
             var password = (XmlRpc.StringValue)methodcall.Parameters[2];
             var struct_ = (XmlRpc.Struct)methodcall.Parameters[3];
             var publish = (XmlRpc.BooleanValue)methodcall.Parameters[4];
+
+            this.WriteLog("PostId = {0}", postid.String);
+            this.WriteLog("Username = {0}", username.String);
+            this.WriteLog("Publish = {0}", publish.Boolean);
 
             var post = this.PostList.TryGetPostById(postid.String);
 
@@ -416,7 +440,7 @@ namespace MetaWeblog.Portable.Server
                 var post_title = struct_.Get<XmlRpc.StringValue>("title",null);
                 if (post_title.String != null)
                 {
-                    post.Title = post_title.String;
+                    post.Title = clean_post_title(post_title.String);
                 }
 
                 var post_description = struct_.Get<XmlRpc.StringValue>("description", null);
@@ -429,39 +453,20 @@ namespace MetaWeblog.Portable.Server
                 var post_categories = struct_.Get<XmlRpc.Array>("categories", null);
                 if (post_categories.Items != null)
                 {
-                    // post.Categories = post_categories.String;
+                    // Reset the post categories
+                    post.Categories.Clear();
+                    post.Categories.AddRange(GetCategoriesFromArray(post_categories));
                 }
 
                 if (publish.Boolean)
                 {
                     post.PostStatus = "published";
                 }
-
-
+                
                 var method_response = new XmlRpc.MethodResponse();
                 method_response.Parameters.Add(true); // this is supposed to always return true
                 WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
             }
-        }
-
-        private string TitleToPostId(MP.XmlRpc.StringValue post_title)
-        {
-            string safe_id = post_title.String.Trim();
-            safe_id = safe_id.Replace(" ", "-");
-            safe_id = safe_id.Replace("\t", "-");
-            safe_id = safe_id.Replace("\r", "-");
-            safe_id = safe_id.Replace("\n", "-");
-            safe_id = safe_id.Replace("&", "-and-");
-            safe_id = safe_id.Replace("<", "-lt-");
-            safe_id = safe_id.Replace(">", "-gt-");
-            safe_id = safe_id.Replace("?", "");
-            safe_id = safe_id.Replace(".", "");
-            safe_id = safe_id.Replace("!", "");
-            safe_id = safe_id.Replace("$", "");
-            safe_id = safe_id.Replace("@", "");
-            safe_id = safe_id.Replace("@", "");
-            string link = "/post/" + safe_id;
-            return link;
         }
 
         private void handle_metaWeblog_getRecentPosts(System.Net.HttpListenerContext context)
