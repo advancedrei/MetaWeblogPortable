@@ -6,7 +6,7 @@ namespace MetaWeblog.Portable.Server
 {
     public class PostList: IEnumerable<PostInfo>
     {
-        public readonly List<PostInfo> items = new List<PostInfo>();
+        private readonly List<PostInfo> items = new List<PostInfo>();
 
         public PostList()
         {
@@ -75,6 +75,28 @@ namespace MetaWeblog.Portable.Server
         }
 
 
+        public PostInfo TryGetPostById(string id)
+        {
+            PostInfo post = null;
+            foreach (var p in this.items)
+            {
+                if (p.PostId == id)
+                {
+                    var method_response = new XmlRpc.MethodResponse();
+                    var struct_ = p.ToStruct();
+                    method_response.Parameters.Add(struct_);
+                    return p;
+                }
+            }
+            return null;
+        }
 
+        public int Count
+        {
+            get
+            {
+                return this.items.Count;
+            }
+        }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using SXL=System.Xml.Linq;
 using MP=MetaWeblog.Portable;
 
@@ -136,9 +137,13 @@ namespace MetaWeblog.Portable.Server
                 {
                     handle_metaWeblog_getPost(context, methodcall);
                 }
+                else if (methodcall.Name == "metaWeblog.editPost")
+                {
+                    handle_metaWeblog_editPost(context, methodcall);
+                }
                 else
                 {
-                    handle_unknown_xmlrpc_method(context, methodcall, body);
+                    respond_unknown_xmlrpc_method(context, methodcall, body);
                 }                
             }
             else
@@ -286,7 +291,7 @@ namespace MetaWeblog.Portable.Server
             WriteResponseString(context, xdoc.ToString(), 200);
         }
 
-        private void handle_unknown_xmlrpc_method(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall, string body)
+        private void respond_unknown_xmlrpc_method(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall, string body)
         {
             WriteLog("Unhandled XmlRpcMethod {0}", methodcall.Name);
             WriteLog("{0}", body);
@@ -304,24 +309,35 @@ namespace MetaWeblog.Portable.Server
             var username = (XmlRpc.StringValue) methodcall.Parameters[1];
             var password = (XmlRpc.StringValue) methodcall.Parameters[2];
 
-            PostInfo post = null;
-            foreach (var p in this.PostList.items)
-            {
-                if (p.PostId == postid.String)
-                {
-                    var method_response = new XmlRpc.MethodResponse();
-                    var struct_ = p.ToStruct();
-                    method_response.Parameters.Add(struct_);
-                    WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
-                    post = p;
-                    break;
-                }
-            }
+            var post = this.PostList.TryGetPostById(postid.String);
 
             if (post == null)
             {
-                throw new System.ArgumentException("Post Not found");
+                // Post was not found
+                respond_error_invalid_postid_parameter(context);
             }
+            else
+            {
+                // Post was found
+                respond_post(context, post);
+            }
+        }
+
+        private void respond_post(HttpListenerContext context, PostInfo post)
+        {
+            var method_response = new XmlRpc.MethodResponse();
+            var struct_ = post.ToStruct();
+            method_response.Parameters.Add(struct_);
+            WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
+        }
+
+        private void respond_error_invalid_postid_parameter(HttpListenerContext context)
+        {
+            var f = new XmlRpc.Fault();
+            f.FaultCode = 2041;
+            f.FaultString = string.Format("Invalid postid parameter");
+
+            WriteResponseString(context, f.CreateDocument().ToString(), 200);
         }
 
         private void handle_metaWeblog_newPost(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
@@ -330,7 +346,7 @@ namespace MetaWeblog.Portable.Server
             var username = (XmlRpc.StringValue) methodcall.Parameters[1];
             var password = (XmlRpc.StringValue) methodcall.Parameters[2];
             var struct_ = (XmlRpc.Struct) methodcall.Parameters[3];
-            var post_status = (XmlRpc.BooleanValue) methodcall.Parameters[4];
+            var publish = (XmlRpc.BooleanValue) methodcall.Parameters[4];
             var post_title = struct_.Get<XmlRpc.StringValue>("title");
             var post_description = struct_.Get<XmlRpc.StringValue>("description");
             var post_categories = struct_.Get<XmlRpc.Array>("categories", null);
@@ -341,6 +357,55 @@ namespace MetaWeblog.Portable.Server
             method_response.Parameters.Add(np.PostId);
 
             WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
+        }
+
+        private void handle_metaWeblog_editPost(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
+        {
+            var postid = (XmlRpc.StringValue)methodcall.Parameters[0];
+            var username = (XmlRpc.StringValue)methodcall.Parameters[1];
+            var password = (XmlRpc.StringValue)methodcall.Parameters[2];
+            var struct_ = (XmlRpc.Struct)methodcall.Parameters[3];
+            var publish = (XmlRpc.BooleanValue)methodcall.Parameters[4];
+
+            var post = this.PostList.TryGetPostById(postid.String);
+
+            if (post == null)
+            {
+                // Post was not found
+                respond_error_invalid_postid_parameter(context);
+            }
+            else
+            {
+                // Post was found
+                var post_title = struct_.Get<XmlRpc.StringValue>("title",null);
+                if (post_title.String != null)
+                {
+                    post.Title = post_title.String;
+                }
+
+                var post_description = struct_.Get<XmlRpc.StringValue>("description", null);
+                if (post_description.String != null)
+                {
+                    post.Description = post_description.String;
+                }
+
+
+                var post_categories = struct_.Get<XmlRpc.Array>("categories", null);
+                if (post_categories.Items != null)
+                {
+                    // post.Categories = post_categories.String;
+                }
+
+                if (publish.Boolean)
+                {
+                    post.PostStatus = "published";
+                }
+
+
+                var method_response = new XmlRpc.MethodResponse();
+                method_response.Parameters.Add(true); // this is supposed to always return true
+                WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
+            }
         }
 
         private string TitleToPostId(MP.XmlRpc.StringValue post_title)

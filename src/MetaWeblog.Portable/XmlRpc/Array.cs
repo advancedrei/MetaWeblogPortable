@@ -21,6 +21,14 @@ namespace MetaWeblog.Portable.XmlRpc
             this._items = new List<Value>(capacity);
         }
 
+        public List<Value> Items
+        {
+            get
+            {
+                return this._items;
+            }
+        }
+
         public void Add(Value v)
         {
             this._items.Add(v);
