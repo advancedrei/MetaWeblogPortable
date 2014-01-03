@@ -29,7 +29,7 @@ namespace MetaWeblog.Portable.Server
             this.Sort();
         }
 
-        public PostInfo Add( DateTime? created, string title, string desc, bool publish)
+        public PostInfo Add(DateTime? created, string title, string desc, IList<string> cats, bool publish)
         {
             var p = new PostInfo();
             p.DateCreated = created != null ? created.Value : System.DateTime.Now;
@@ -40,6 +40,12 @@ namespace MetaWeblog.Portable.Server
             p.Link = this.TitleToPostId(p.Title);
             p.Permalink = p.Link;
             p.PostStatus = "published";
+
+            if (cats != null)
+            {
+                p.Categories.AddRange(cats);
+            }
+
 
             this.items.Add(p);
 

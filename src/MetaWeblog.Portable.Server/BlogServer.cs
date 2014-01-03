@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using Array = MetaWeblog.Portable.XmlRpc.Array;
 using SXL=System.Xml.Linq;
 using MP=MetaWeblog.Portable;
 
@@ -45,15 +46,20 @@ namespace MetaWeblog.Portable.Server
             this.BlogTitle = this.GetType().Name;
 
             // This server will contain a single blog
-            this.BlogList.Add(new UserBlogInfo("admin", this.ServerUrlPrimary, this.BlogTitle));            
+            this.BlogList.Add(new UserBlogInfo("admin", this.ServerUrlPrimary, this.BlogTitle));
 
             // Add Dummy Content
             if (this.Options.CreateDefaultPosts)
             {
-                this.PostList.Add(new System.DateTime(2012, 12, 2), "1000 Amazing Uses for Staples", "staples", true);
-                this.PostList.Add(new System.DateTime(2012, 1, 15), "Why Pizza is Great", "pizza", true);
-                this.PostList.Add(new System.DateTime(2013, 4, 10), "Sandwiches I have loved", "sandwiches", true);
-                this.PostList.Add(new System.DateTime(2013, 3, 31), "Useful Things You Can Do With a Giraffe", "giraffe", true );
+            var cats1 = new[] {"sports,biology"};
+            var cats2 = new[] {"sports"};
+            var cats3 = new[] {"sports,food"};
+            var cats4 = new[] {""};
+
+                this.PostList.Add(new System.DateTime(2012, 12, 2), "1000 Amazing Uses for Staples", "staples", cats1, true);
+                this.PostList.Add(new System.DateTime(2012, 1, 15), "Why Pizza is Great", "pizza", cats2, true);
+                this.PostList.Add(new System.DateTime(2013, 4, 10), "Sandwiches I have loved", "sandwiches", cats3, true);
+                this.PostList.Add(new System.DateTime(2013, 3, 31), "Useful Things You Can Do With a Giraffe", "giraffe", cats3, true);
             }
         }
 
@@ -140,6 +146,11 @@ namespace MetaWeblog.Portable.Server
                 else if (methodcall.Name == "metaWeblog.editPost")
                 {
                     handle_metaWeblog_editPost(context, methodcall);
+                }
+                else if (methodcall.Name == "metaWeblog.getCategories")
+                {
+                    handle_blogger_getCategories(context, methodcall);
+
                 }
                 else
                 {
@@ -351,12 +362,35 @@ namespace MetaWeblog.Portable.Server
             var post_description = struct_.Get<XmlRpc.StringValue>("description");
             var post_categories = struct_.Get<XmlRpc.Array>("categories", null);
 
-            var np = this.PostList.Add(null, post_title.String, post_description.String, true);
+            var cats = GetCategoriesFromArray(post_categories);
+
+            this.WriteLog( " Categories {0}", string.Join(",",cats));
+            var new_post = this.PostList.Add(null, post_title.String, post_description.String, cats, true);
 
             var method_response = new XmlRpc.MethodResponse();
-            method_response.Parameters.Add(np.PostId);
+            method_response.Parameters.Add(new_post.PostId);
 
+            this.WriteLog("New Post Created with ID = {0}", new_post.PostId);
             WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
+        }
+
+        private List<string> GetCategoriesFromArray(Array post_categories)
+        {
+            List<string> cats;
+            if (post_categories.Items == null)
+            {
+                cats = new List<string>(0);
+            }
+            else
+            {
+                cats = new List<string>(post_categories.Count);
+                foreach (var c in post_categories.Items)
+                {
+                    var sv = c as XmlRpc.StringValue;
+                    cats.Add(sv.String);
+                }
+            }
+            return cats;
         }
 
         private void handle_metaWeblog_editPost(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
@@ -430,7 +464,7 @@ namespace MetaWeblog.Portable.Server
 
         private void handle_metaWeblog_getRecentPosts(System.Net.HttpListenerContext context)
         {
-            var method_response = BuildStructArrrayResponse(this.PostList.Select(i => i.ToStruct()));
+            var method_response = BuildStructArrayResponse(this.PostList.Select(i => i.ToStruct()));
             var method_response_xml = method_response.CreateDocument();
             var method_response_string = method_response_xml.ToString();
 
@@ -439,11 +473,39 @@ namespace MetaWeblog.Portable.Server
 
         private void handle_blogger_getUsersBlog(System.Net.HttpListenerContext context)
         {
-            var method_response = BuildStructArrrayResponse(this.BlogList.Select(i => i.ToStruct()));
+            var method_response = BuildStructArrayResponse(this.BlogList.Select(i => i.ToStruct()));
             var method_response_xml = method_response.CreateDocument();
             var method_response_string = method_response_xml.ToString();
 
             WriteResponseString(context, method_response_string, 200);
+        }
+
+        private void handle_blogger_getCategories(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
+        {
+            var hs = new HashSet<string>();
+            foreach (var post in this.PostList)
+            {
+                foreach (var cat in post.Categories)
+                {
+                    hs.Add(cat);
+                }
+            }
+
+            this.WriteLog(" Categories {0}", string.Join(",", hs));
+
+            var method_response = BuildStructArrayResponse( hs.Select( cat => CatToStruct(cat)));
+            var method_response_xml = method_response.CreateDocument();
+            var method_response_string = method_response_xml.ToString();
+
+            WriteResponseString(context, method_response_string, 200);
+        }
+
+        private XmlRpc.Struct CatToStruct(string cat)
+        {
+            var struct_ = new XmlRpc.Struct();
+            struct_["name"] = new XmlRpc.StringValue(cat);
+            struct_["description"] = new XmlRpc.StringValue(cat);
+            return struct_;
         }
 
         private System.Xml.Linq.XDocument CreateHtmlDom()
@@ -466,7 +528,7 @@ namespace MetaWeblog.Portable.Server
             return xdoc;
         }
 
-        public MP.XmlRpc.MethodResponse BuildStructArrrayResponse(IEnumerable<XmlRpc.Struct> structs)
+        public MP.XmlRpc.MethodResponse BuildStructArrayResponse(IEnumerable<XmlRpc.Struct> structs)
         {
             var method_response = new XmlRpc.MethodResponse();
             var arr = new XmlRpc.Array();

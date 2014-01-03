@@ -61,9 +61,27 @@ namespace MetaWeblog.Portable
         /// </summary>
         public string Description { get; set; }
 
+        /// <summary>
+        /// A list of categories. This list will never be null.
+        /// </summary>
+        public List<string> Categories
+        {
+            get
+            {
+                return this._Categories;
+            }
+        }
+
+        private List<string> _Categories { get; set; }
+
         #endregion
 
         #region Public Methods
+
+        public PostInfo()
+        {
+            this._Categories = new List<string>(0);
+        }
 
         /// <summary>
         /// 
