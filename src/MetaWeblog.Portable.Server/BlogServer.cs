@@ -6,41 +6,6 @@ using MP=MetaWeblog.Portable;
 
 namespace MetaWeblog.Portable.Server
 {
-    public class PostList: IEnumerable<PostInfo>
-    {
-        private readonly List<PostInfo> items = new List<PostInfo>();
-
-        public PostList()
-        {
-            
-        }
-
-        public IEnumerator<PostInfo> GetEnumerator()
-        {
-            return this.items.GetEnumerator();
-        }
-
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        public void Add(PostInfo p)
-        {
-            this.items.Add(p);
-            this.Sort();
-        }
-
-        public void Sort()
-        {
-            var unpublished_dt = System.DateTime.Now;
-            this.items.Sort(
-                (x, y) =>
-                    y.DateCreated.GetValueOrDefault(unpublished_dt).CompareTo(x.DateCreated.GetValueOrDefault(unpublished_dt)));
-        }
-
-
-    }
     public class BlogServer
     {
         private readonly System.Net.HttpListener HttpListener = new System.Net.HttpListener();
@@ -88,8 +53,6 @@ namespace MetaWeblog.Portable.Server
                 this.PostList.Add(new PostInfo { DateCreated = new System.DateTime(2012, 1, 15), Title = "Why Pizza is Great", Description = "pizza", PostId = "10", Link = "/post/WhyPizzaIsGreat" });
                 this.PostList.Add(new PostInfo { DateCreated = new System.DateTime(2013, 4, 10), Title = "Sandwiches I have loved", Description = "d4", PostId = "sandwiches", Link = "/post/SandwichesIHaveLoved" });
                 this.PostList.Add(new PostInfo { DateCreated = new System.DateTime(2013, 3, 31), Title = "Useful Things You Can Do With a Giraffe", Description = "giraffe", PostId = "30", Link = "/post/UsefulThingsYouCanDoWithAGiraffe" });
-
-                this.PostList.Sort();
             }
         }
 
