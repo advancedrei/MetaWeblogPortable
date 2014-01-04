@@ -74,6 +74,7 @@ namespace MetaWeblog.Portable.Server
             // Add Placeholder Content
             if (this.Options.CreateSampleContent)
             {
+                /*
                 var cats1 = new[] {"sports","biology", "office supplies"};
                 var cats2 = new[] {"food"};
                 var cats3 = new[] {"food" };
@@ -86,7 +87,11 @@ namespace MetaWeblog.Portable.Server
                 this.PostList.Add(new System.DateTime(2012, 1, 15), "Why Pizza is Great", lipsum, cats2, true);
                 this.PostList.Add(new System.DateTime(2013, 4, 10), "Sandwiches I have loved", lipsum, cats3, true);
                 this.PostList.Add(new System.DateTime(2013, 3, 31), "Useful Things You Can Do With a Giraffe", lipsum, cats4, true);
+                 * */
             }
+
+
+            
         }
 
         private void WriteLogMethodName()
