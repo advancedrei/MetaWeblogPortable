@@ -16,7 +16,8 @@ namespace MetaWeblog.Portable.Server
         private readonly string ServerUrlSecondary;
         private readonly List<UserBlogInfo> BlogList = new List<UserBlogInfo>();
         private readonly PostList PostList = new PostList();
-        private readonly List<BlogUser> BlogUsers  = new List<BlogUser>();
+        private readonly MediaObjectList MediaObjectList = new MediaObjectList();
+        private readonly List<BlogUser> BlogUsers = new List<BlogUser>();
 
         public readonly string HostName = Environment.MachineName.ToLower();
         public readonly string LogFilename;
@@ -239,15 +240,26 @@ namespace MetaWeblog.Portable.Server
             WriteLog("Root page - send 404");
             var xdoc = CreateHtmlDom();
             var el_body = xdoc.Element("html").Element("body");
-            el_body.Value = string.Format("Not found {0}", context.Request.Url.AbsolutePath);
+
+            el_body.AddParagraphElement(string.Format("404 {0}", "Not found"));
+            el_body.AddParagraphElement(string.Format("Url.AbvsolutePath {0}", context.Request.Url.AbsolutePath));
+            el_body.AddParagraphElement(string.Format("Url.Query {0}", context.Request.Url.Query));
             WriteResponseString(context, xdoc.ToString(), 404);
         }
 
         private void handle_media(System.Net.HttpListenerContext context)
         {
-            string filename = System.IO.Path.Combine(this.Options.OutputFolder, context.Request.Url.AbsolutePath.Substring(1));
+            var mo = this.MediaObjectList.TryGetMediaObjectByUrl(context.Request.Url.AbsolutePath + context.Request.Url.Query);
+            if (mo == null)
+            {
+                handle_404_not_found(context);
+                return;
+            }
 
-            var bytes = System.IO.File.ReadAllBytes(filename);
+            var m = mo.Value;
+
+
+            var bytes = System.Convert.FromBase64String(m.Base64Bits);
 
             context.Response.StatusCode = 200;
             context.Response.KeepAlive = false;
@@ -424,32 +436,15 @@ namespace MetaWeblog.Portable.Server
             var type = struct_.Get<XmlRpc.StringValue>("type");
             var bits = struct_.Get<XmlRpc.Base64Data>("bits");
 
-
             this.WriteLog("Name = {0}", name.String);
             this.WriteLog("Type = {0}", type.String);
             this.WriteLog("Bits  = {0} Bytes Characters", bits.Bytes);
 
-            name.String = name.String.Replace("/", "-");
-            name.String = name.String.Replace("\\", "-");
-
-            string media_folder = System.IO.Path.Combine(this.Options.OutputFolder, "Media");
-            CreateFolderSafe(media_folder);
-
-            string prefix = System.DateTime.Now.Ticks.ToString();
-
-            string object_folder = System.IO.Path.Combine(media_folder, prefix);
-            CreateFolderSafe(object_folder);
-
-            string basename = prefix + "-" + name.String;
-            string media_filename = System.IO.Path.Combine(object_folder, basename);
-
-            this.WriteLog("Media filename {0}", media_filename);
-
-            System.IO.File.WriteAllBytes(media_filename, bits.Bytes);
-
+            var mo = this.MediaObjectList.StoreNewObject(blogid.String, username.String, name.String, type.String,
+                Convert.ToBase64String(bits.Bytes));
 
             var s_ = new XmlRpc.Struct();
-            s_["url"] = new XmlRpc.StringValue(this.ServerUrlPrimary + "media/" + prefix + "/" + basename);
+            s_["url"] = new XmlRpc.StringValue(this.ServerUrlPrimary + mo.Url.Substring(1));
 
             var method_response = new XmlRpc.MethodResponse();
             method_response.Parameters.Add(s_);
