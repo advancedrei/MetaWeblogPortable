@@ -33,10 +33,19 @@ namespace MetaWeblog.Portable.Server
             }
             this.Options = options;
 
+            CreateFolderSafe(this.Options.OutputFolder);
+
             // Initialize the log
             string logfilename = GetLogFilename();
             Console.WriteLine("Log at: {0}", logfilename);
-            LogStream = System.IO.File.AppendText(logfilename);
+            if (this.Options.OverwriteLog)
+            {
+                LogStream = System.IO.File.CreateText(logfilename);                
+            }
+            else
+            {
+                LogStream = System.IO.File.AppendText(logfilename);                
+            }
             LogStream.AutoFlush = true;
 
             // The Primary url is what will normally be used
@@ -62,8 +71,8 @@ namespace MetaWeblog.Portable.Server
 
             this.BlogList.Add(new UserBlogInfo(adminuser.Name, this.ServerUrlPrimary, this.BlogTitle));
 
-            // Add Dummy Content
-            if (this.Options.CreateDefaultPosts)
+            // Add Placeholder Content
+            if (this.Options.CreateSampleContent)
             {
                 var cats1 = new[] {"sports","biology", "office supplies"};
                 var cats2 = new[] {"food"};
@@ -76,12 +85,19 @@ namespace MetaWeblog.Portable.Server
                 this.PostList.Add(new System.DateTime(2012, 12, 2), "1000 Amazing Uses for Staples", lipsum, cats1, true);
                 this.PostList.Add(new System.DateTime(2012, 1, 15), "Why Pizza is Great", lipsum, cats2, true);
                 this.PostList.Add(new System.DateTime(2013, 4, 10), "Sandwiches I have loved", lipsum, cats3, true);
-                this.PostList.Add(new System.DateTime(2013, 3, 31), "Useful Things You Can Do With a Giraffe", lipsum, cats3, true);
+                this.PostList.Add(new System.DateTime(2013, 3, 31), "Useful Things You Can Do With a Giraffe", lipsum, cats4, true);
             }
+        }
+
+        private void WriteLogMethodName()
+        {
+            string s  = new System.Diagnostics.StackFrame(1).GetMethod().Name;
+            this.WriteLog(s + "()");
         }
 
         public void Start()
         {
+            this.WriteLogMethodName();
             Console.WriteLine("{0}", this.ServerUrlPrimary);
             Console.WriteLine("{0}", this.ServerUrlSecondary);
 
@@ -104,9 +120,8 @@ namespace MetaWeblog.Portable.Server
         {
             // Get the absolute path to be used as the logfile
             // note that the filename will be based on the class name
-            string mydocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             string basename = this.GetType().Name + ".txt";
-            string logfilename = System.IO.Path.Combine(mydocs, basename);
+            string logfilename = System.IO.Path.Combine(this.Options.OutputFolder, basename);
             return logfilename;
         }
 
@@ -135,52 +150,56 @@ namespace MetaWeblog.Portable.Server
             if (context.Request.Url.AbsolutePath == this.Options.MetaWeblogUrl)
             {
 
-                WriteLog("Request sent to metaweblog api - treating as XmlRpcCall");
-                string body = new System.IO.StreamReader(context.Request.InputStream).ReadToEnd();
-                WriteLog("Read {0} characters from input stream", body.Length);
-                WriteLog("Parsing body ");                
-                var methodcall = MetaWeblog.Portable.XmlRpc.MethodCall.Parse(body);
-                WriteLog("METHODCALL {0}", methodcall);
-
-
-                Console.WriteLine("Method Name: {0}", methodcall.Name);
-
-                if (methodcall.Name == "blogger.getUsersBlogs")
-                {
-                    handle_blogger_getUsersBlog(context);
-                }
-                else if (methodcall.Name == "metaWeblog.getRecentPosts")
-                {
-                    handle_metaWeblog_getRecentPosts(context);
-                }
-                else if (methodcall.Name == "metaWeblog.newPost")
-                {
-                    handle_metaWeblog_newPost(context, methodcall);
-                }
-                else if (methodcall.Name == "metaWeblog.getPost")
-                {
-                    handle_metaWeblog_getPost(context, methodcall);
-                }
-                else if (methodcall.Name == "metaWeblog.editPost")
-                {
-                    handle_metaWeblog_editPost(context, methodcall);
-                }
-                else if (methodcall.Name == "metaWeblog.getCategories")
-                {
-                    handle_blogger_getCategories(context, methodcall);
-                }
-                else if (methodcall.Name == "metaWeblog.newMediaObject")
-                {
-                    handle_metaWeblog_newMediaObject(context, methodcall);
-                }
-                else
-                {
-                    respond_unknown_xmlrpc_method(context, methodcall, body);
-                }                
+                handle_xmlrpc_method(context);
             }
             else
             {
                 handle_normal_request(context);
+            }
+        }
+
+        private void handle_xmlrpc_method(HttpListenerContext context)
+        {
+            WriteLog("Request sent to metaweblog api - treating as XmlRpcCall");
+            string body = new System.IO.StreamReader(context.Request.InputStream).ReadToEnd();
+            WriteLog("Read {0} characters from input stream", body.Length);
+            WriteLog("Parsing body ");
+            var methodcall = MetaWeblog.Portable.XmlRpc.MethodCall.Parse(body);
+            WriteLog("METHODCALL {0}", methodcall);
+
+            Console.WriteLine("Method Name: {0}", methodcall.Name);
+
+            if (methodcall.Name == "blogger.getUsersBlogs")
+            {
+                handle_blogger_getUsersBlog(context, methodcall);
+            }
+            else if (methodcall.Name == "metaWeblog.getRecentPosts")
+            {
+                handle_metaWeblog_getRecentPosts(context, methodcall);
+            }
+            else if (methodcall.Name == "metaWeblog.newPost")
+            {
+                handle_metaWeblog_newPost(context, methodcall);
+            }
+            else if (methodcall.Name == "metaWeblog.getPost")
+            {
+                handle_metaWeblog_getPost(context, methodcall);
+            }
+            else if (methodcall.Name == "metaWeblog.editPost")
+            {
+                handle_metaWeblog_editPost(context, methodcall);
+            }
+            else if (methodcall.Name == "metaWeblog.getCategories")
+            {
+                handle_blogger_getCategories(context, methodcall);
+            }
+            else if (methodcall.Name == "metaWeblog.newMediaObject")
+            {
+                handle_metaWeblog_newMediaObject(context, methodcall);
+            }
+            else
+            {
+                respond_unknown_xmlrpc_method(context, methodcall, body);
             }
         }
 
@@ -221,8 +240,7 @@ namespace MetaWeblog.Portable.Server
 
         private void handle_media(System.Net.HttpListenerContext context)
         {
-            string mydocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string filename = System.IO.Path.Combine(mydocs,"BlogServer" + context.Request.Url.AbsolutePath);
+            string filename = System.IO.Path.Combine(this.Options.OutputFolder, context.Request.Url.AbsolutePath.Substring(1));
 
             var bytes = System.IO.File.ReadAllBytes(filename);
 
@@ -243,41 +261,30 @@ namespace MetaWeblog.Portable.Server
             string post_link = context.Request.Url.AbsolutePath;
             WriteLog("postlink = {0}", post_link);
 
-            PostInfo thepost = null;
-            foreach (var post in this.PostList)
-            {
-                if (post.Link == post_link)
-                {
-                    thepost = post;
-                }
-            }
+            var thepost = this.PostList.TryGetPostByLink(post_link);
 
             if (thepost == null)
             {
-                WriteLog("Root page - send 404");
-                var xdoc = CreateHtmlDom();
-                var el_body = xdoc.Element("html").Element("body");
-                el_body.Value = string.Format("Not found {0}", context.Request.Url.AbsolutePath);
-                WriteResponseString(context, xdoc.ToString(), 404);
+                handle_404_not_found(context);
+                return;
             }
-            else
-            {
-                var xdoc = CreateHtmlDom();
-                var el_body = xdoc.Element("html").Element("body");
-                var el_div_post = GetPostContentElement(thepost);
 
-                el_body.Add(el_div_post);
+            var xdoc = CreateHtmlDom();
+            var el_body = xdoc.Element("html").ElementSafe("body");
+            var el_div_post = GetPostContentElement(thepost);
+
+            el_body.Add(el_div_post);
                 
-                string html = xdoc.ToString();
-                html = html.Replace(GetReplacementString(thepost), thepost.Description);
-                WriteResponseString(context, html, 200);
-            }
+            string html = xdoc.ToString();
+            html = html.Replace(GetReplacementString(thepost), thepost.Description);
+            WriteResponseString(context, html, 200);
         }
 
         private SXL.XElement GetPostContentElement(PostInfo thepost)
         {
             var el_div_post = new System.Xml.Linq.XElement("div");
-            var el_blog_content = el_div_post.AddH1Element(thepost.Title);
+            var el_blog_content = el_div_post.AddH1Element(thepost.Title + (thepost.PostStatus == "draft" ? "[DRAFT]" : ""));
+            
             var el_para_cats = el_div_post.AddParagraphElement("Categories: " + string.Join(",", thepost.Categories));
             var el_div = el_div_post.AddDivElement();
 
@@ -420,31 +427,16 @@ namespace MetaWeblog.Portable.Server
             name.String = name.String.Replace("/", "-");
             name.String = name.String.Replace("\\", "-");
 
-            string mydocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string f1 = System.IO.Path.Combine(mydocs, "BlogServer");
-            string f2 = System.IO.Path.Combine(f1, "Media");
-
-            if (!System.IO.Directory.Exists(f1))
-            {
-                System.IO.Directory.CreateDirectory(f1);
-            }
-
-            if (!System.IO.Directory.Exists(f2))
-            {
-                System.IO.Directory.CreateDirectory(f2);
-            }
+            string media_folder = System.IO.Path.Combine(this.Options.OutputFolder, "Media");
+            CreateFolderSafe(media_folder);
 
             string prefix = System.DateTime.Now.Ticks.ToString();
 
-            string f3 = System.IO.Path.Combine(f2, prefix);
-
-            if (!System.IO.Directory.Exists(f3))
-            {
-                System.IO.Directory.CreateDirectory(f3);
-            }
+            string object_folder = System.IO.Path.Combine(media_folder, prefix);
+            CreateFolderSafe(object_folder);
 
             string basename = prefix + "-" + name.String;
-            string media_filename = System.IO.Path.Combine(f3, basename);
+            string media_filename = System.IO.Path.Combine(object_folder, basename);
 
             this.WriteLog("Media filename {0}", media_filename);
 
@@ -463,6 +455,13 @@ namespace MetaWeblog.Portable.Server
             WriteResponseString(context, response_body, 200);
         }
 
+        private static void CreateFolderSafe(string f1)
+        {
+            if (!System.IO.Directory.Exists(f1))
+            {
+                System.IO.Directory.CreateDirectory(f1);
+            }
+        }
 
 
         private void handle_metaWeblog_newPost(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
@@ -516,9 +515,7 @@ namespace MetaWeblog.Portable.Server
         private string clean_post_title(string title)
         {
             string new_title = title;
-            new_title = new_title.Replace("\t", " ");
-            new_title = new_title.Replace("  ", " ");
-            new_title = new_title.Trim();
+            new_title = StringUtils.CollapseWhiteSpace(new_title);
             return new_title;
         }
 
@@ -569,6 +566,10 @@ namespace MetaWeblog.Portable.Server
                 {
                     post.PostStatus = "published";
                 }
+                else
+                {
+                    post.PostStatus = "draft";                    
+                }
                 
                 var method_response = new XmlRpc.MethodResponse();
                 method_response.Parameters.Add(true); // this is supposed to always return true
@@ -576,7 +577,7 @@ namespace MetaWeblog.Portable.Server
             }
         }
 
-        private void handle_metaWeblog_getRecentPosts(System.Net.HttpListenerContext context)
+        private void handle_metaWeblog_getRecentPosts(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
         {
             var method_response = BuildStructArrayResponse(this.PostList.Select(i => i.ToStruct()));
             var method_response_xml = method_response.CreateDocument();
@@ -585,7 +586,7 @@ namespace MetaWeblog.Portable.Server
             WriteResponseString(context, method_response_string, 200);
         }
 
-        private void handle_blogger_getUsersBlog(System.Net.HttpListenerContext context)
+        private void handle_blogger_getUsersBlog(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
         {
             var method_response = BuildStructArrayResponse(this.BlogList.Select(i => i.ToStruct()));
             var method_response_xml = method_response.CreateDocument();
@@ -596,14 +597,7 @@ namespace MetaWeblog.Portable.Server
 
         private void handle_blogger_getCategories(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
         {
-            var hs = new HashSet<string>();
-            foreach (var post in this.PostList)
-            {
-                foreach (var cat in post.Categories)
-                {
-                    hs.Add(cat);
-                }
-            }
+            var hs = this.PostList.GetCategories();
 
             this.WriteLog(" Categories {0}", string.Join(",", hs));
 

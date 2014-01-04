@@ -40,6 +40,16 @@ namespace MetaWeblog.Portable.Server
             return el_para;
         }
 
+        public static System.Xml.Linq.XElement ElementSafe(this System.Xml.Linq.XElement parent, System.Xml.Linq.XName name)
+        {
+            var el = parent.Element(name);
+            if (el == null)
+            {
+                string msg = string.Format("Could not find element named {0}", name);
+                throw new System.ArgumentException(msg);
+            }
+            return el;
+        }
        
     }
 }

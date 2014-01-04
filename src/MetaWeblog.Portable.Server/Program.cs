@@ -9,7 +9,7 @@ namespace MetaWeblog.Portable.Server
             // NOTE: If running within Visual Studio you'll need to run VS as an administrator
 
             var options = new BlogServerOptions();
-            options.CreateDefaultPosts = true;
+            options.CreateSampleContent = true;
             var blog_server = new BlogServer(options);
             blog_server.Start();
         }

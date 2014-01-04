@@ -47,32 +47,46 @@ namespace MetaWeblog.Portable.Server
             }
 
 
-            this.items.Add(p);
+            this.Add(p);
 
             return p;
         }
 
         private string TitleToPostId(string t)
         {
-            string safe_id = t.Trim();
-            safe_id = safe_id.Replace(" ", "-");
-            safe_id = safe_id.Replace("\t", "-");
-            safe_id = safe_id.Replace("\r", "-");
-            safe_id = safe_id.Replace("\n", "-");
-            safe_id = safe_id.Replace("&", "-and-");
-            safe_id = safe_id.Replace("<", "-lt-");
-            safe_id = safe_id.Replace(">", "-gt-");
-            safe_id = safe_id.Replace("?", "");
-            safe_id = safe_id.Replace(".", "");
-            safe_id = safe_id.Replace("!", "");
-            safe_id = safe_id.Replace("$", "");
-            safe_id = safe_id.Replace("@", "");
-            safe_id = safe_id.Replace("@", "");
-            string link = "/post/" + safe_id;
-            return link;
+            t = StringUtils.CollapseWhiteSpace(t);
+            var sb = new System.Text.StringBuilder(t.Length);
+            foreach (char c in t)
+            {
+                if (Char.IsWhiteSpace(c))
+                {
+                    sb.Append("-");
+                }
+                else if (c == '?' || c == '.' || c == '!' || c == '!' || c == '$' || c == '@')
+                {
+                    // don't include these
+                }
+                else if (c == '&')
+                {
+                    sb.Append("-and-");
+                }
+                else if (c == '<')
+                {
+                    sb.Append("-lt-");
+                }
+                else if (c == '>')
+                {
+                    sb.Append("-gt-");
+                }
+                else
+                {
+                    sb.Append(c);
+                }
+            }
+            return sb.ToString();
         }
 
-        public void Sort()
+        private void Sort()
         {
             var unpublished_dt = System.DateTime.Now;
             this.items.Sort(
@@ -83,15 +97,23 @@ namespace MetaWeblog.Portable.Server
 
         public PostInfo TryGetPostById(string id)
         {
-            PostInfo post = null;
             foreach (var p in this.items)
             {
                 if (p.PostId == id)
                 {
-                    var method_response = new XmlRpc.MethodResponse();
-                    var struct_ = p.ToStruct();
-                    method_response.Parameters.Add(struct_);
                     return p;
+                }
+            }
+            return null;
+        }
+
+        public PostInfo TryGetPostByLink(string link)
+        {
+            foreach (var post in this.items)
+            {
+                if (post.Link == link)
+                {
+                    return post;
                 }
             }
             return null;
@@ -104,5 +126,37 @@ namespace MetaWeblog.Portable.Server
                 return this.items.Count;
             }
         }
+
+        public HashSet<string> GetCategories()
+        {
+            var hs = new HashSet<string>();
+            foreach (var post in this)
+            {
+                foreach (var cat in post.Categories)
+                {
+                    hs.Add(cat);
+                }
+            }
+            return hs;
+        }
+
+        public Dictionary<string,List<PostInfo>> GetPostsByCategory()
+        {
+            var dic = new Dictionary<string,List<PostInfo>>();
+            foreach (var post in this)
+            {
+                foreach (var cat in post.Categories)
+                {
+                    if (!dic.ContainsKey(cat))
+                    {
+                        dic[cat]= new List<PostInfo>();
+                    }
+                    var list = dic[cat];
+                    list.Add(post);
+                }
+            }
+            return dic;
+        }
+
     }
 }
