@@ -16,9 +16,11 @@ namespace MetaWeblog.Portable.Server
         private readonly string ServerUrlSecondary;
         private readonly List<UserBlogInfo> BlogList = new List<UserBlogInfo>();
         private readonly PostList PostList = new PostList();
+        private readonly List<BlogUser> BlogUsers  = new List<BlogUser>();
 
         public readonly string HostName = Environment.MachineName.ToLower();
         public readonly string LogFilename;
+
         public string BlogTitle;
 
         public BlogServerOptions Options;
@@ -45,8 +47,20 @@ namespace MetaWeblog.Portable.Server
             // The title of the blog will be based on the class name
             this.BlogTitle = this.GetType().Name;
 
+            // This server will contain a single user
+
+            var adminuser = new BlogUser
+            {
+                Name = "admin",
+                Password = "password"
+            };
+
+            this.BlogUsers.Add(adminuser);
+
             // This server will contain a single blog
-            this.BlogList.Add(new UserBlogInfo("admin", this.ServerUrlPrimary, this.BlogTitle));
+
+
+            this.BlogList.Add(new UserBlogInfo(adminuser.Name, this.ServerUrlPrimary, this.BlogTitle));
 
             // Add Dummy Content
             if (this.Options.CreateDefaultPosts)
@@ -130,6 +144,7 @@ namespace MetaWeblog.Portable.Server
 
 
                 Console.WriteLine("Method Name: {0}", methodcall.Name);
+
                 if (methodcall.Name == "blogger.getUsersBlogs")
                 {
                     handle_blogger_getUsersBlog(context);
@@ -153,7 +168,10 @@ namespace MetaWeblog.Portable.Server
                 else if (methodcall.Name == "metaWeblog.getCategories")
                 {
                     handle_blogger_getCategories(context, methodcall);
-
+                }
+                else if (methodcall.Name == "metaWeblog.newMediaObject")
+                {
+                    handle_metaWeblog_newMediaObject(context, methodcall);
                 }
                 else
                 {
@@ -178,6 +196,10 @@ namespace MetaWeblog.Portable.Server
             {
                 handle_blog_archive_page(context);
             }
+            else if (context.Request.Url.AbsolutePath.StartsWith("/media/"))
+            {
+                handle_media(context);
+            }
             else if (context.Request.Url.AbsolutePath.StartsWith(this.Options.PostUrl + "/"))
             {
                 handle_post(context);
@@ -195,6 +217,22 @@ namespace MetaWeblog.Portable.Server
             var el_body = xdoc.Element("html").Element("body");
             el_body.Value = string.Format("Not found {0}", context.Request.Url.AbsolutePath);
             WriteResponseString(context, xdoc.ToString(), 404);
+        }
+
+        private void handle_media(System.Net.HttpListenerContext context)
+        {
+            string mydocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string filename = System.IO.Path.Combine(mydocs,"BlogServer" + context.Request.Url.AbsolutePath);
+
+            var bytes = System.IO.File.ReadAllBytes(filename);
+
+            context.Response.StatusCode = 200;
+            context.Response.KeepAlive = false;
+            context.Response.ContentLength64 = bytes.Length;
+
+            var output = context.Response.OutputStream;
+            output.Write(bytes, 0, bytes.Length);
+            context.Response.Close();
         }
 
         private void handle_post(System.Net.HttpListenerContext context)
@@ -357,6 +395,75 @@ namespace MetaWeblog.Portable.Server
 
             WriteResponseString(context, f.CreateDocument().ToString(), 200);
         }
+
+
+        private void handle_metaWeblog_newMediaObject(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
+        {
+            var blogid = (XmlRpc.StringValue) methodcall.Parameters[0];
+            var username = (XmlRpc.StringValue) methodcall.Parameters[1];
+            var password = (XmlRpc.StringValue) methodcall.Parameters[2];
+
+            this.WriteLog("BlogId = {0}",blogid.String);
+            this.WriteLog("Username = {0}", username.String);
+
+            var struct_ = (XmlRpc.Struct)methodcall.Parameters[3];
+
+            var name = struct_.Get<XmlRpc.StringValue>("name");
+            var type = struct_.Get<XmlRpc.StringValue>("type");
+            var bits = struct_.Get<XmlRpc.Base64Data>("bits");
+
+
+            this.WriteLog("Name = {0}", name.String);
+            this.WriteLog("Type = {0}", type.String);
+            this.WriteLog("Bits  = {0} Bytes Characters", bits.Bytes);
+
+            name.String = name.String.Replace("/", "-");
+            name.String = name.String.Replace("\\", "-");
+
+            string mydocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            string f1 = System.IO.Path.Combine(mydocs, "BlogServer");
+            string f2 = System.IO.Path.Combine(f1, "Media");
+
+            if (!System.IO.Directory.Exists(f1))
+            {
+                System.IO.Directory.CreateDirectory(f1);
+            }
+
+            if (!System.IO.Directory.Exists(f2))
+            {
+                System.IO.Directory.CreateDirectory(f2);
+            }
+
+            string prefix = System.DateTime.Now.Ticks.ToString();
+
+            string f3 = System.IO.Path.Combine(f2, prefix);
+
+            if (!System.IO.Directory.Exists(f3))
+            {
+                System.IO.Directory.CreateDirectory(f3);
+            }
+
+            string basename = prefix + "-" + name.String;
+            string media_filename = System.IO.Path.Combine(f3, basename);
+
+            this.WriteLog("Media filename {0}", media_filename);
+
+            System.IO.File.WriteAllBytes(media_filename, bits.Bytes);
+
+
+            var s_ = new XmlRpc.Struct();
+            s_["url"] = new XmlRpc.StringValue(this.ServerUrlPrimary + "media/" + prefix + "/" + basename);
+
+            var method_response = new XmlRpc.MethodResponse();
+            method_response.Parameters.Add(s_);
+
+            string response_body = method_response.CreateDocument().ToString();
+
+            this.WriteLog(response_body);
+            WriteResponseString(context, response_body, 200);
+        }
+
+
 
         private void handle_metaWeblog_newPost(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
         {

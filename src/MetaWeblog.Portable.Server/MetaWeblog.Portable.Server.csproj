@@ -53,6 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BlogServerOptions.cs" />
+    <Compile Include="BlogUser.cs" />
     <Compile Include="PostList.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
