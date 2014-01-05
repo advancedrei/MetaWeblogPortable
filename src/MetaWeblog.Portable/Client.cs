@@ -5,13 +5,28 @@ using MetaWeblog.Portable.XmlRpc;
 
 namespace MetaWeblog.Portable
 {
+
+    /// <summary>
+    /// Central class for interacting with a CMS through the metaWeblogAPI.
+    /// </summary>
+    /// <remarks>The metaWeblogAPI spec is located at http://xmlrpc.scripting.com/metaWeblogApi.html</remarks>
     public class Client
     {
-        //http://xmlrpc.scripting.com/metaWeblogApi.html
 
-        public string AppKey = "0123456789ABCDEF";
-        public BlogConnectionInfo BlogConnectionInfo;
+        /// <summary>
+        /// 
+        /// </summary>
+        public string AppKey { get; set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        public BlogConnectionInfo BlogConnectionInfo { get; private set; }
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="connectionInfo"></param>
         public Client(BlogConnectionInfo connectionInfo)
         {
             this.BlogConnectionInfo = connectionInfo;

@@ -1,5 +1,9 @@
 ﻿namespace MetaWeblog.Portable
 {
+
+    /// <summary>
+    /// 
+    /// </summary>
     public class BlogInfo
     {
 

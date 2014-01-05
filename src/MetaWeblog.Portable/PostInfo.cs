@@ -78,6 +78,9 @@ namespace MetaWeblog.Portable
 
         #region Public Methods
 
+        /// <summary>
+        /// 
+        /// </summary>
         public PostInfo()
         {
             this._Categories = new List<string>(0);

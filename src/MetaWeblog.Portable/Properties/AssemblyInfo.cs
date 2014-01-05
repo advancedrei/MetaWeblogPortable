@@ -11,7 +11,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("MetaWeblog.Portable")]
-[assembly: AssemblyCopyright("Copyright © 2013 Saveen Reddy and Robert McLaws")]
+[assembly: AssemblyCopyright("Copyright © 2013-2014 Saveen Reddy and Robert McLaws")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 [assembly: NeutralResourcesLanguage("en")]

@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("MetaWeblog.Portable.Server")]
-[assembly: AssemblyCopyright("Copyright ©  2013")]
+[assembly: AssemblyCopyright("Copyright © 2013-2014 Saveen Reddy and Robert McLaws")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
