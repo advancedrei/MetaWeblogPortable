@@ -225,6 +225,10 @@ namespace MetaWeblog.Portable.Server
             {
                 handle_media(context);
             }
+            else if (context.Request.Url.AbsolutePath == ("/debug"))
+            {
+                handle_debug(context);
+            }
             else if (context.Request.Url.AbsolutePath.StartsWith(this.Options.PostUrl + "/"))
             {
                 handle_post(context);
@@ -344,6 +348,27 @@ namespace MetaWeblog.Portable.Server
             WriteResponseString(context, html, 200);
         }
 
+        private void handle_debug(System.Net.HttpListenerContext context)
+        {
+            var xdoc = this.CreateHtmlDom();
+            var el_body = xdoc.Element("html").Element("body");
+            var el_title = el_body.AddH1Element("Debug Page");
+
+            foreach (var post in this.PostList)
+            {
+                el_body.AddH1Element(post.Title);
+                el_body.AddParagraphElement(string.Format("Title=\"{0}\"", post.Title));
+                el_body.AddParagraphElement(string.Format("Link=\"{0}\"", post.Link));
+                el_body.AddParagraphElement(string.Format("Permalin=\"{0}\"", post.Permalink));
+                el_body.AddParagraphElement(string.Format("PostStatus=\"{0}\"", post.PostStatus));
+                el_body.AddParagraphElement(string.Format("PostId=\"{0}\"", post.PostId));
+                el_body.AddParagraphElement(string.Format("PostUserId=\"{0}\"", post.UserId));
+            }
+
+            string html = xdoc.ToString();
+
+            WriteResponseString(context, html, 200);
+        }
 
         private void handle_blog_archive_page(System.Net.HttpListenerContext context)
         {

@@ -52,7 +52,7 @@ namespace MetaWeblog.Portable.Server
             p.Title = title;
             p.Description = desc;
             p.PostId = System.DateTime.Now.Ticks.ToString();
-            p.Link = this.TitleToPostId(p.Title);
+            p.Link = "/post/" + this.TitleToPostId(p.Title);
             p.Permalink = p.Link;
             p.PostStatus = "published";
 
