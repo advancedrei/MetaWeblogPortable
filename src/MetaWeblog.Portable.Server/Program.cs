@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace MetaWeblog.Portable.Server
+namespace MetaWeblog.Server
 {
     class Program
     {

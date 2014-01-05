@@ -1,4 +1,4 @@
-namespace MetaWeblog.Portable.Server
+namespace MetaWeblog.Server
 {
     public static class SXLExtensions
     {

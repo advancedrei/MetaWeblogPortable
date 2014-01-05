@@ -7,8 +7,8 @@
     <ProjectGuid>{79A5E12A-17CD-46BF-B3BF-B43D0E8861FD}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>MetaWeblog.Portable.Server</RootNamespace>
-    <AssemblyName>MetaWeblog.Portable.Server</AssemblyName>
+    <RootNamespace>MetaWeblog.Server</RootNamespace>
+    <AssemblyName>MetaWeblog.Server</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>

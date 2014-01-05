@@ -14,7 +14,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{2B51E6
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MetaWeblog.Portable.Server", "MetaWeblog.Portable.Server\MetaWeblog.Portable.Server.csproj", "{79A5E12A-17CD-46BF-B3BF-B43D0E8861FD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MetaWeblog.Server", "MetaWeblog.Portable.Server\MetaWeblog.Server.csproj", "{79A5E12A-17CD-46BF-B3BF-B43D0E8861FD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MetaWeblog.Portable.Samples", "MetaWeblog.Portable.Samples\MetaWeblog.Portable.Samples.csproj", "{3ECF4200-C86D-439B-BAE3-7CA1FC8D139C}"
 EndProject

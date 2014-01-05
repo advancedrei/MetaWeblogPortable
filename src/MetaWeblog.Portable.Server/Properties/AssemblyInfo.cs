@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("MetaWeblog.Portable.Server")]
+[assembly: AssemblyTitle("MetaWeblog.Server")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("MetaWeblog.Portable.Server")]
+[assembly: AssemblyProduct("MetaWeblog.Server")]
 [assembly: AssemblyCopyright("Copyright © 2013-2014 Saveen Reddy and Robert McLaws")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

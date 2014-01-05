@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using Microsoft.Isam.Esent.Collections.Generic;
 
-namespace MetaWeblog.Portable.Server
+namespace MetaWeblog.Server
 {
     public class MediaObjectList : ObjectDic<MediaObjectRecord>
     {

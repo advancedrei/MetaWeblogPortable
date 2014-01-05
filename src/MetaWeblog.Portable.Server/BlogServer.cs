@@ -4,7 +4,7 @@ using System.Linq;
 using SXL=System.Xml.Linq;
 using MP=MetaWeblog.Portable;
 
-namespace MetaWeblog.Portable.Server
+namespace MetaWeblog.Server
 {
     public partial class BlogServer
     {
@@ -361,7 +361,7 @@ namespace MetaWeblog.Portable.Server
         private void respond_post(System.Net.HttpListenerContext context, PostInfoRecord post)
         {
             this.WriteLogMethodName();
-            var method_response = new XmlRpc.MethodResponse();
+            var method_response = new MP.XmlRpc.MethodResponse();
             var struct_ = post.ToPostInfo().ToStruct();
             method_response.Parameters.Add(struct_);
             WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
@@ -370,7 +370,7 @@ namespace MetaWeblog.Portable.Server
         private void respond_error_invalid_postid_parameter(System.Net.HttpListenerContext context, int status_code)
         {
             this.WriteLogMethodName();
-            var f = new XmlRpc.Fault();
+            var f = new MP.XmlRpc.Fault();
             f.FaultCode = 2041;
             f.FaultString = string.Format("Invalid postid parameter");
 
@@ -389,7 +389,7 @@ namespace MetaWeblog.Portable.Server
                 cats = new List<string>(post_categories.Count);
                 foreach (var c in post_categories.Items)
                 {
-                    var sv = c as XmlRpc.StringValue;
+                    var sv = c as MP.XmlRpc.StringValue;
                     cats.Add(sv.String);
                 }
             }
@@ -424,10 +424,10 @@ namespace MetaWeblog.Portable.Server
             return xdoc;
         }
 
-        public MP.XmlRpc.MethodResponse BuildStructArrayResponse(IEnumerable<XmlRpc.Struct> structs)
+        public MP.XmlRpc.MethodResponse BuildStructArrayResponse(IEnumerable<MP.XmlRpc.Struct> structs)
         {
-            var method_response = new XmlRpc.MethodResponse();
-            var arr = new XmlRpc.Array();
+            var method_response = new MP.XmlRpc.MethodResponse();
+            var arr = new MP.XmlRpc.Array();
 
             foreach (var struct_ in structs)
             {

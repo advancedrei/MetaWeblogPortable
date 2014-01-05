@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Isam.Esent.Collections.Generic;
 
-namespace MetaWeblog.Portable.Server
+namespace MetaWeblog.Server
 {
     public class ObjectDic<T> : IEnumerable<T>
     {

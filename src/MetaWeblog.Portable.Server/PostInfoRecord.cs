@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Linq;
+using MP = MetaWeblog.Portable;
 
-namespace MetaWeblog.Portable.Server
+namespace MetaWeblog.Server
 {
     [Serializable]
     public struct PostInfoRecord
@@ -17,7 +18,7 @@ namespace MetaWeblog.Portable.Server
         public string Description;
         public string Categories;
 
-        public PostInfoRecord(PostInfo p)
+        public PostInfoRecord(MP.PostInfo p)
         {
             this.Title = p.Title;
             this.Link = p.Link;
@@ -38,9 +39,9 @@ namespace MetaWeblog.Portable.Server
         }
 
 
-        public PostInfo ToPostInfo()
+        public MP.PostInfo ToPostInfo()
         {
-            var p = new PostInfo();
+            var p = new MP.PostInfo();
             p.Title = this.Title;
             p.Link = this.Link;
             p.DateCreated = this.DateCreated;

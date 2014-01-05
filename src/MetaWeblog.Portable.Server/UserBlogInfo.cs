@@ -1,4 +1,6 @@
-﻿namespace MetaWeblog.Portable.Server
+﻿using MP = MetaWeblog.Portable;
+
+namespace MetaWeblog.Server
 {
     public class UserBlogInfo
     {
@@ -13,12 +15,12 @@
             this.Name = name;
         }
 
-        public XmlRpc.Struct ToStruct()
+        public MP.XmlRpc.Struct ToStruct()
         {
-            var struct_ = new XmlRpc.Struct();
-            struct_["blogid"] = new XmlRpc.StringValue(this.ID);
-            struct_["url"] = new XmlRpc.StringValue(this.Url);
-            struct_["blogName"] = new XmlRpc.StringValue(this.Name);
+            var struct_ = new MP.XmlRpc.Struct();
+            struct_["blogid"] = new MP.XmlRpc.StringValue(this.ID);
+            struct_["url"] = new MP.XmlRpc.StringValue(this.Url);
+            struct_["blogName"] = new MP.XmlRpc.StringValue(this.Name);
 
             return struct_;
         }

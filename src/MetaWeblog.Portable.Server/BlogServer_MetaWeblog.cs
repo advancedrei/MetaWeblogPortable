@@ -4,7 +4,7 @@ using System.Linq;
 using SXL=System.Xml.Linq;
 using MP=MetaWeblog.Portable;
 
-namespace MetaWeblog.Portable.Server
+namespace MetaWeblog.Server
 {
     public partial class BlogServer
     {
@@ -67,7 +67,7 @@ namespace MetaWeblog.Portable.Server
             WriteLog("Unhandled XmlRpcMethod {0}", methodcall.Name);
             WriteLog("{0}", body);
 
-            var f = new XmlRpc.Fault();
+            var f = new MP.XmlRpc.Fault();
             f.FaultCode = 0;
             f.FaultString = string.Format("unsupported method {0}", methodcall.Name);
 
@@ -77,10 +77,10 @@ namespace MetaWeblog.Portable.Server
         private void handle_metaWeblog_getPost(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
         {
             this.WriteLogMethodName();
-            
-            var postid = (XmlRpc.StringValue)methodcall.Parameters[0];
-            var username = (XmlRpc.StringValue)methodcall.Parameters[1];
-            var password = (XmlRpc.StringValue)methodcall.Parameters[2];
+
+            var postid = (MP.XmlRpc.StringValue)methodcall.Parameters[0];
+            var username = (MP.XmlRpc.StringValue)methodcall.Parameters[1];
+            var password = (MP.XmlRpc.StringValue)methodcall.Parameters[2];
 
             this.WriteLog("PostId = {0}", postid.String);
             this.WriteLog("Username = {0}", username.String);
@@ -102,18 +102,18 @@ namespace MetaWeblog.Portable.Server
         {
             this.WriteLogMethodName();
 
-            var blogid = (XmlRpc.StringValue)methodcall.Parameters[0];
-            var username = (XmlRpc.StringValue)methodcall.Parameters[1];
-            var password = (XmlRpc.StringValue)methodcall.Parameters[2];
+            var blogid = (MP.XmlRpc.StringValue)methodcall.Parameters[0];
+            var username = (MP.XmlRpc.StringValue)methodcall.Parameters[1];
+            var password = (MP.XmlRpc.StringValue)methodcall.Parameters[2];
 
             this.WriteLog("BlogId = {0}", blogid.String);
             this.WriteLog("Username = {0}", username.String);
 
-            var struct_ = (XmlRpc.Struct)methodcall.Parameters[3];
+            var struct_ = (MP.XmlRpc.Struct)methodcall.Parameters[3];
 
-            var name = struct_.Get<XmlRpc.StringValue>("name");
-            var type = struct_.Get<XmlRpc.StringValue>("type");
-            var bits = struct_.Get<XmlRpc.Base64Data>("bits");
+            var name = struct_.Get<MP.XmlRpc.StringValue>("name");
+            var type = struct_.Get<MP.XmlRpc.StringValue>("type");
+            var bits = struct_.Get<MP.XmlRpc.Base64Data>("bits");
 
             this.WriteLog("Name = {0}", name.String);
             this.WriteLog("Type = {0}", type.String);
@@ -122,10 +122,10 @@ namespace MetaWeblog.Portable.Server
             var mo = this.MediaObjectList.StoreNewObject(blogid.String, username.String, name.String, type.String,
                 Convert.ToBase64String(bits.Bytes));
 
-            var s_ = new XmlRpc.Struct();
-            s_["url"] = new XmlRpc.StringValue(this.ServerUrlPrimary + mo.Url.Substring(1));
+            var s_ = new MP.XmlRpc.Struct();
+            s_["url"] = new MP.XmlRpc.StringValue(this.ServerUrlPrimary + mo.Url.Substring(1));
 
-            var method_response = new XmlRpc.MethodResponse();
+            var method_response = new MP.XmlRpc.MethodResponse();
             method_response.Parameters.Add(s_);
 
             string response_body = method_response.CreateDocument().ToString();
@@ -147,27 +147,27 @@ namespace MetaWeblog.Portable.Server
         {
             this.WriteLogMethodName();
 
-            var blogid = (XmlRpc.StringValue)methodcall.Parameters[0];
-            var username = (XmlRpc.StringValue)methodcall.Parameters[1];
-            var password = (XmlRpc.StringValue)methodcall.Parameters[2];
+            var blogid = (MP.XmlRpc.StringValue)methodcall.Parameters[0];
+            var username = (MP.XmlRpc.StringValue)methodcall.Parameters[1];
+            var password = (MP.XmlRpc.StringValue)methodcall.Parameters[2];
 
             this.WriteLog("BlogId = {0}", blogid.String);
             this.WriteLog("Username = {0}", username.String);
 
-            var struct_ = (XmlRpc.Struct)methodcall.Parameters[3];
-            var publish = (XmlRpc.BooleanValue)methodcall.Parameters[4];
-            var post_title = struct_.Get<XmlRpc.StringValue>("title").String;
+            var struct_ = (MP.XmlRpc.Struct)methodcall.Parameters[3];
+            var publish = (MP.XmlRpc.BooleanValue)methodcall.Parameters[4];
+            var post_title = struct_.Get<MP.XmlRpc.StringValue>("title").String;
             post_title = clean_post_title(post_title);
 
-            var post_description = struct_.Get<XmlRpc.StringValue>("description");
-            var post_categories = struct_.Get<XmlRpc.Array>("categories", null);
+            var post_description = struct_.Get<MP.XmlRpc.StringValue>("description");
+            var post_categories = struct_.Get<MP.XmlRpc.Array>("categories", null);
 
             var cats = GetCategoriesFromArray(post_categories);
 
             this.WriteLog(" Categories {0}", string.Join(",", cats));
             var new_post = this.PostList.Add(null, post_title, post_description.String, cats, publish.Boolean);
 
-            var method_response = new XmlRpc.MethodResponse();
+            var method_response = new MP.XmlRpc.MethodResponse();
             method_response.Parameters.Add(new_post.PostId);
 
             this.WriteLog("New Post Created with ID = {0}", new_post.PostId);
@@ -178,10 +178,10 @@ namespace MetaWeblog.Portable.Server
         {
             this.WriteLogMethodName();
 
-            var appkey = (XmlRpc.StringValue)methodcall.Parameters[0];
-            var postid = (XmlRpc.StringValue)methodcall.Parameters[1];
-            var username = (XmlRpc.StringValue)methodcall.Parameters[2];
-            var password = (XmlRpc.StringValue)methodcall.Parameters[3];
+            var appkey = (MP.XmlRpc.StringValue)methodcall.Parameters[0];
+            var postid = (MP.XmlRpc.StringValue)methodcall.Parameters[1];
+            var username = (MP.XmlRpc.StringValue)methodcall.Parameters[2];
+            var password = (MP.XmlRpc.StringValue)methodcall.Parameters[3];
 
             this.WriteLog("AppKey = {0}", postid.String);
             this.WriteLog("PostId = {0}", postid.String);
@@ -201,7 +201,7 @@ namespace MetaWeblog.Portable.Server
             this.WriteLog("Found Post with ID {0}", postid.String);
             this.PostList.Delete(post.Value);
 
-            var method_response = new XmlRpc.MethodResponse();
+            var method_response = new MP.XmlRpc.MethodResponse();
             method_response.Parameters.Add(true); // this is supposed to always return true
             WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
         }
@@ -211,11 +211,11 @@ namespace MetaWeblog.Portable.Server
         {
             this.WriteLogMethodName();
 
-            var postid = (XmlRpc.StringValue)methodcall.Parameters[0];
-            var username = (XmlRpc.StringValue)methodcall.Parameters[1];
-            var password = (XmlRpc.StringValue)methodcall.Parameters[2];
-            var struct_ = (XmlRpc.Struct)methodcall.Parameters[3];
-            var publish = (XmlRpc.BooleanValue)methodcall.Parameters[4];
+            var postid = (MP.XmlRpc.StringValue)methodcall.Parameters[0];
+            var username = (MP.XmlRpc.StringValue)methodcall.Parameters[1];
+            var password = (MP.XmlRpc.StringValue)methodcall.Parameters[2];
+            var struct_ = (MP.XmlRpc.Struct)methodcall.Parameters[3];
+            var publish = (MP.XmlRpc.BooleanValue)methodcall.Parameters[4];
 
             this.WriteLog("PostId = {0}", postid.String);
             this.WriteLog("Username = {0}", username.String);
@@ -232,20 +232,20 @@ namespace MetaWeblog.Portable.Server
             var newpost = post.Value;
 
             // Post was found
-            var post_title = struct_.Get<XmlRpc.StringValue>("title", null);
+            var post_title = struct_.Get<MP.XmlRpc.StringValue>("title", null);
             if (post_title.String != null)
             {
                 newpost.Title = clean_post_title(post_title.String);
             }
 
-            var post_description = struct_.Get<XmlRpc.StringValue>("description", null);
+            var post_description = struct_.Get<MP.XmlRpc.StringValue>("description", null);
             if (post_description.String != null)
             {
                 newpost.Description = post_description.String;
             }
 
 
-            var post_categories = struct_.Get<XmlRpc.Array>("categories", null);
+            var post_categories = struct_.Get<MP.XmlRpc.Array>("categories", null);
             if (post_categories.Items != null)
             {
                 // Reset the post categories
@@ -264,7 +264,7 @@ namespace MetaWeblog.Portable.Server
 
             this.PostList.Dictionary[newpost.PostId] = newpost;
 
-            var method_response = new XmlRpc.MethodResponse();
+            var method_response = new MP.XmlRpc.MethodResponse();
             method_response.Parameters.Add(true); // this is supposed to always return true
             WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
         }
@@ -306,11 +306,11 @@ namespace MetaWeblog.Portable.Server
             WriteResponseString(context, method_response_string, 200);
         }
 
-        private XmlRpc.Struct CatToStruct(string cat)
+        private MP.XmlRpc.Struct CatToStruct(string cat)
         {
-            var struct_ = new XmlRpc.Struct();
-            struct_["name"] = new XmlRpc.StringValue(cat);
-            struct_["description"] = new XmlRpc.StringValue(cat);
+            var struct_ = new MP.XmlRpc.Struct();
+            struct_["name"] = new MP.XmlRpc.StringValue(cat);
+            struct_["description"] = new MP.XmlRpc.StringValue(cat);
             return struct_;
         }
     }

@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using Microsoft.Isam.Esent.Collections.Generic;
+using MP = MetaWeblog.Portable;
 
-namespace MetaWeblog.Portable.Server
+namespace MetaWeblog.Server
 {
     public class PostList: ObjectDic<PostInfoRecord>
     {
@@ -12,15 +11,15 @@ namespace MetaWeblog.Portable.Server
         {
         }
 
-        public void Add(PostInfo p)
+        public void Add(MP.PostInfo p)
         {
             this.Dictionary[p.PostId] = new PostInfoRecord(p);
             this.Dictionary.Flush();
         }
 
-        public PostInfo Add(DateTime? created, string title, string desc, IList<string> cats, bool publish)
+        public MP.PostInfo Add(DateTime? created, string title, string desc, IList<string> cats, bool publish)
         {
-            var p = new PostInfo();
+            var p = new MP.PostInfo();
             p.DateCreated = created != null ? created.Value : System.DateTime.Now;
 
             p.Title = title;

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace MetaWeblog.Portable.Server
+namespace MetaWeblog.Server
 {
     [Serializable]
     public struct MediaObjectRecord
