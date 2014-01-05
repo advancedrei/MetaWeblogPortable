@@ -3,29 +3,11 @@ using Microsoft.Isam.Esent.Collections.Generic;
 
 namespace MetaWeblog.Portable.Server
 {
-    public class MediaObjectList : IEnumerable<MediaObjectRecord>
+    public class MediaObjectList : ObjectDic<MediaObjectRecord>
     {
-        private readonly PersistentDictionary<string, MediaObjectRecord> pdic;
-
         public MediaObjectList()
+            : base("MediaObjectsDB")
         {
-            string mydocs = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
-            string folder = System.IO.Path.Combine(mydocs, typeof(BlogServer).Name + "/" + "MediaObjectsDB");
-            if (!System.IO.Directory.Exists(folder))
-            {
-                System.IO.Directory.CreateDirectory(folder);
-            }
-            this.pdic = new PersistentDictionary<string, MediaObjectRecord>(folder);               
-        }
-
-        public IEnumerator<MediaObjectRecord> GetEnumerator()
-        {
-            return this.pdic.Values.GetEnumerator();
-        }
-
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
         }
 
         public MediaObjectRecord StoreNewObject(string blogid, string userid, string name, string type, string bits)

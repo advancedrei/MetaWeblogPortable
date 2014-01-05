@@ -5,37 +5,11 @@ using Microsoft.Isam.Esent.Collections.Generic;
 
 namespace MetaWeblog.Portable.Server
 {
-    public class PostList: IEnumerable<PostInfo> 
+    public class PostList: ObjectDic<PostInfoRecord>
     {
-        private readonly PersistentDictionary<string, PostInfoRecord> pdic;
-        
-        public PostList()
+        public PostList():
+            base("PostsDB")
         {
-            string mydocs = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
-            string folder = System.IO.Path.Combine(mydocs, typeof (BlogServer).Name + "/" + "PostsDB");
-            if (!System.IO.Directory.Exists(folder))
-            {
-                System.IO.Directory.CreateDirectory(folder);
-            }
-            this.pdic = new PersistentDictionary<string, PostInfoRecord>(folder);            
-        }
-
-        ~PostList()
-        {
-            if (this.pdic != null)
-            {
-                this.pdic.Dispose();
-            }
-        }
-
-        public IEnumerator<PostInfo> GetEnumerator()
-        {
-            return this.pdic.Values.Select(p=>p.ToPostInfo()).GetEnumerator();
-        }
-
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
         }
 
         public void Add(PostInfo p)
@@ -110,12 +84,12 @@ namespace MetaWeblog.Portable.Server
             return null;
         }
 
-        public PostInfo TryGetPostByLink(string link)
+        public PostInfoRecord? TryGetPostByLink(string link)
         {
             var pair = this.pdic.FirstOrDefault(i => i.Value.Link == link);
             if (pair.Value.PostId != null)
             {
-                return pair.Value.ToPostInfo();
+                return pair.Value;
             }
             return null;
         }
@@ -133,24 +107,27 @@ namespace MetaWeblog.Portable.Server
             var hs = new HashSet<string>();
             foreach (var post in this)
             {
-                foreach (var cat in post.Categories)
+                var cats = post.SplitCategories();
+                foreach (var cat in cats)
                 {
+                    
                     hs.Add(cat);
                 }
             }
             return hs;
         }
 
-        public Dictionary<string,List<PostInfo>> GetPostsByCategory()
+        public Dictionary<string,List<PostInfoRecord>> GetPostsByCategory()
         {
-            var dic = new Dictionary<string,List<PostInfo>>();
+            var dic = new Dictionary<string, List<PostInfoRecord>>();
             foreach (var post in this)
             {
-                foreach (var cat in post.Categories)
+                var cats = post.SplitCategories();
+                foreach (var cat in cats)
                 {
                     if (!dic.ContainsKey(cat))
                     {
-                        dic[cat]= new List<PostInfo>();
+                        dic[cat] = new List<PostInfoRecord>();
                     }
                     var list = dic[cat];
                     list.Add(post);

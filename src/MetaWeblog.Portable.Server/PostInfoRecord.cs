@@ -31,6 +31,13 @@ namespace MetaWeblog.Portable.Server
             this.Categories = String.Join(";",p.Categories.Select(s=>s.Trim()));
         }
 
+        internal string[] SplitCategories()
+        {
+            var cats = this.Categories.Split(new char[] { ';' });
+            return cats;
+        }
+
+
         public PostInfo ToPostInfo()
         {
             var p = new PostInfo();
@@ -43,7 +50,7 @@ namespace MetaWeblog.Portable.Server
             p.PostStatus = this.PostStatus;
             p.Permalink = this.Permalink;
             p.Description = this.Description;
-            var cats = this.Categories.Split(new char[ ] {';'});
+            var cats = this.SplitCategories();
             foreach (string cat in cats)
             {
                 p.Categories.Add(cat.Trim());

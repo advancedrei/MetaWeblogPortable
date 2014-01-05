@@ -292,16 +292,16 @@ namespace MetaWeblog.Portable.Server
 
             var xdoc = CreateHtmlDom();
             var el_body = xdoc.Element("html").ElementSafe("body");
-            var el_div_post = GetPostContentElement(thepost);
+            var el_div_post = GetPostContentElement(thepost.Value);
 
             el_body.Add(el_div_post);
                 
             string html = xdoc.ToString();
-            html = html.Replace(GetReplacementString(thepost), thepost.Description);
+            html = html.Replace(GetReplacementString(thepost.Value), thepost.Value.Description);
             WriteResponseString(context, html, 200);
         }
 
-        private SXL.XElement GetPostContentElement(PostInfo thepost)
+        private SXL.XElement GetPostContentElement(PostInfoRecord thepost)
         {
             var el_div_post = new System.Xml.Linq.XElement("div");
             var el_blog_content = el_div_post.AddH1Element(thepost.Title + (thepost.PostStatus == "draft" ? "[DRAFT]" : ""));
@@ -313,7 +313,7 @@ namespace MetaWeblog.Portable.Server
             return el_div_post;
         }
 
-        private string GetReplacementString(PostInfo thepost)
+        private string GetReplacementString(PostInfoRecord thepost)
         {
             string replacement_string = "$$$$$$$$$$" + thepost.Link + "$$$$$$$$$$";
             return replacement_string;
@@ -480,7 +480,7 @@ namespace MetaWeblog.Portable.Server
             WriteResponseString(context, response_body, 200);
         }
 
-        private static void CreateFolderSafe(string f1)
+        public static void CreateFolderSafe(string f1)
         {
             if (!System.IO.Directory.Exists(f1))
             {
@@ -604,7 +604,7 @@ namespace MetaWeblog.Portable.Server
 
         private void handle_metaWeblog_getRecentPosts(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
         {
-            var method_response = BuildStructArrayResponse(this.PostList.Select(i => i.ToStruct()));
+            var method_response = BuildStructArrayResponse(this.PostList.Select(i => i.ToPostInfo().ToStruct()));
             var method_response_xml = method_response.CreateDocument();
             var method_response_string = method_response_xml.ToString();
 
@@ -695,5 +695,13 @@ namespace MetaWeblog.Portable.Server
             LogStream.Write(" ");
             LogStream.WriteLine(s);
         }
+
+        public static string GetOutputFolderRootPath()
+        {
+            string mydocs = System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments);
+            string folder = System.IO.Path.Combine(mydocs, typeof(BlogServer).Name);
+            return folder;
+        }
+
     }
 }

@@ -62,6 +62,7 @@
     <Compile Include="BlogUser.cs" />
     <Compile Include="MediaObjectList.cs" />
     <Compile Include="MediaObjectRecord.cs" />
+    <Compile Include="ObjectDic.cs" />
     <Compile Include="PostInfoRecord.cs" />
     <Compile Include="PostList.cs" />
     <Compile Include="Program.cs" />
