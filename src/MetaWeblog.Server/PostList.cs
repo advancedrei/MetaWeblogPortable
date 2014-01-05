@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using MP = MetaWeblog.Portable;
 
 namespace MetaWeblog.Server
@@ -31,6 +32,10 @@ namespace MetaWeblog.Server
 
             if (cats != null)
             {
+                if (cats.Any(c => c.Trim().Length < 1))
+                {
+                    throw new System.ArgumentException("Category cannot be empoty or whitespace");
+                }
                 p.Categories.AddRange(cats);
             }
 

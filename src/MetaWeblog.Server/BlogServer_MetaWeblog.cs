@@ -294,24 +294,13 @@ namespace MetaWeblog.Server
         private void handle_blogger_getCategories(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
         {
             this.WriteLogMethodName();
-
-            var hs = this.PostList.GetCategories();
-
-            this.WriteLog(" Categories {0}", string.Join(",", hs));
-
-            var method_response = BuildStructArrayResponse(hs.Select(cat => CatToStruct(cat)));
+            var cats = this.CategoryList.ToList();
+            var method_response = BuildStructArrayResponse(cats.Select(c => c.ToStruct()));
             var method_response_xml = method_response.CreateDocument();
             var method_response_string = method_response_xml.ToString();
 
             WriteResponseString(context, method_response_string, 200);
         }
 
-        private MP.XmlRpc.Struct CatToStruct(string cat)
-        {
-            var struct_ = new MP.XmlRpc.Struct();
-            struct_["name"] = new MP.XmlRpc.StringValue(cat);
-            struct_["description"] = new MP.XmlRpc.StringValue(cat);
-            return struct_;
-        }
     }
 }

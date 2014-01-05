@@ -39,4 +39,40 @@ namespace MetaWeblog.Server
             return null;
         }
     }
+
+    public class CategoryList : ObjectDic<CategoryRecord>
+    {
+        public CategoryList()
+            : base("CategoryDB")
+        {
+        }
+
+        public CategoryRecord Add(string blogid, string description)
+        {
+            var now = System.DateTime.Now;
+
+            var m = new CategoryRecord();
+            m.Id = now.Ticks.ToString();
+            m.BlogId = blogid;
+            m.Description = description.Trim();
+            m.Name = m.Description;
+            m.DateCreated = now;
+            m.HtmlUrl = "/category/" + description;
+            m.RssUrl = m.HtmlUrl + "?format=rss";
+
+            this.Dictionary[m.Id] = m;
+            this.Dictionary.Flush();
+
+            return m;
+        }
+
+        public CategoryRecord? TryGetCategoryById(string id)
+        {
+            if (this.Dictionary.ContainsKey(id))
+            {
+                return this.Dictionary[id];
+            }
+            return null;
+        }
+    }
 }

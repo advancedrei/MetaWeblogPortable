@@ -16,6 +16,7 @@ namespace MetaWeblog.Server
         private readonly List<BlogUser> BlogUsers;
         private readonly PostList PostList;
         private readonly MediaObjectList MediaObjectList;
+        private readonly CategoryList CategoryList;
 
         public readonly string HostName;
         public readonly string LogFilename;
@@ -67,6 +68,7 @@ namespace MetaWeblog.Server
             this.BlogUsers = new List<BlogUser>();
             this.PostList = new PostList();
             this.MediaObjectList = new MediaObjectList();
+            this.CategoryList = new CategoryList();
 
             this.BlogUsers.Add(adminuser);
             
@@ -76,6 +78,16 @@ namespace MetaWeblog.Server
             // Add Placeholder Content
             if (this.Options.CreateSampleContent && this.PostList.Count < 1)
             {
+
+                if (this.CategoryList.Count < 1)
+                {
+                    this.CategoryList.Add("0", "sports");
+                    this.CategoryList.Add("0", "biology");
+                    this.CategoryList.Add("0", "office supplies");
+                    this.CategoryList.Add("0", "food");
+                    this.CategoryList.Add("0", "tech");                    
+                }
+
                 var cats1 = new[] {"sports","biology", "office supplies"};
                 var cats2 = new[] {"food"};
                 var cats3 = new[] {"food" };
@@ -89,7 +101,10 @@ namespace MetaWeblog.Server
                 this.PostList.Add(new System.DateTime(2013, 4, 10), "Sandwiches I have loved", lipsum, cats3, true);
                 this.PostList.Add(new System.DateTime(2013, 3, 31), "Useful Things You Can Do With a Giraffe", lipsum, cats4, true);
             }
+
             this.HttpListener = new System.Net.HttpListener();
+
+
         }
 
         private void WriteLogMethodName()
@@ -315,6 +330,8 @@ namespace MetaWeblog.Server
             var el_body = xdoc.Element("html").Element("body");
             var el_title = el_body.AddH1Element("Debug Page");
 
+            el_body.AddH1Element(this.PostList.Count.ToString() + " Posts");
+
             foreach (var kv in this.PostList.Dictionary)
             {
                 var post = kv.Value;
@@ -328,6 +345,23 @@ namespace MetaWeblog.Server
                 el_body.AddParagraphElement(string.Format("PostId=\"{0}\"", post.PostId));
                 el_body.AddParagraphElement(string.Format("PostUserId=\"{0}\"", post.UserId));
             }
+
+            el_body.AddH1Element( this.CategoryList.Count.ToString() + " Categories");
+            foreach (var kv in this.CategoryList.Dictionary)
+            {
+                var cat = kv.Value;
+                var key = kv.Key;
+                el_body.AddH1Element(cat.Description);
+                el_body.AddParagraphElement(string.Format("Key=\"{0}\"", key));
+                el_body.AddParagraphElement(string.Format("Description=\"{0}\"", cat.Description));
+                el_body.AddParagraphElement(string.Format("Name=\"{0}\"", cat.Name));
+                el_body.AddParagraphElement(string.Format("BlogId=\"{0}\"", cat.BlogId));
+                el_body.AddParagraphElement(string.Format("DateCreated=\"{0}\"", cat.DateCreated));
+                el_body.AddParagraphElement(string.Format("Id=\"{0}\"", cat.Id));
+                el_body.AddParagraphElement(string.Format("HtmlUrl=\"{0}\"", cat.HtmlUrl));
+                el_body.AddParagraphElement(string.Format("RssUrl=\"{0}\"", cat.RssUrl));
+            }
+
 
             string html = xdoc.ToString();
 
