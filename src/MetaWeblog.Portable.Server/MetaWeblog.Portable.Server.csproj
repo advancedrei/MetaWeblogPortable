@@ -58,6 +58,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BlogServer_MetaWeblog.cs" />
     <Compile Include="BlogServerOptions.cs" />
     <Compile Include="BlogUser.cs" />
     <Compile Include="MediaObjectList.cs" />
