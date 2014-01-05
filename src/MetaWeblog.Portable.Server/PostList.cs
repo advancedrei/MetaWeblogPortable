@@ -14,8 +14,8 @@ namespace MetaWeblog.Portable.Server
 
         public void Add(PostInfo p)
         {
-            this.pdic[p.PostId] = new PostInfoRecord(p);
-            this.pdic.Flush();
+            this.Dictionary[p.PostId] = new PostInfoRecord(p);
+            this.Dictionary.Flush();
         }
 
         public PostInfo Add(DateTime? created, string title, string desc, IList<string> cats, bool publish)
@@ -75,31 +75,23 @@ namespace MetaWeblog.Portable.Server
             return sb.ToString();
         }
 
-        public PostInfo TryGetPostById(string id)
+        public PostInfoRecord? TryGetPostById(string id)
         {
-            if (pdic.ContainsKey(id))
+            if (Dictionary.ContainsKey(id))
             {
-                return pdic[id].ToPostInfo();
+                return Dictionary[id];
             }
             return null;
         }
 
         public PostInfoRecord? TryGetPostByLink(string link)
         {
-            var pair = this.pdic.FirstOrDefault(i => i.Value.Link == link);
+            var pair = this.Dictionary.FirstOrDefault(i => i.Value.Link == link);
             if (pair.Value.PostId != null)
             {
                 return pair.Value;
             }
             return null;
-        }
-
-        public int Count
-        {
-            get
-            {
-                return this.pdic.Count;
-            }
         }
 
         public HashSet<string> GetCategories()
@@ -136,5 +128,9 @@ namespace MetaWeblog.Portable.Server
             return dic;
         }
 
+        public void Delete(PostInfoRecord p)
+        {
+            this.Delete(p.PostId);
+        }
     }
 }

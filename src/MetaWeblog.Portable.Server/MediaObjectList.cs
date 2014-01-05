@@ -25,16 +25,16 @@ namespace MetaWeblog.Portable.Server
             m.BlogId = blogid;
             m.UserId = userid;
             m.Url = "/media/" + m.Filename + "?id=" + m.Id;
-            pdic[m.Url] = m;
-            pdic.Flush();
+            Dictionary[m.Url] = m;
+            Dictionary.Flush();
             return m;
         }
 
         public MediaObjectRecord? TryGetMediaObjectByUrl(string url)
         {
-            if (this.pdic.ContainsKey(url))
+            if (this.Dictionary.ContainsKey(url))
             {
-                return this.pdic[url];
+                return this.Dictionary[url];
             }
             return null;
         }

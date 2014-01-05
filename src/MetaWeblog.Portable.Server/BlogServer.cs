@@ -69,13 +69,12 @@ namespace MetaWeblog.Portable.Server
 
             // This server will contain a single blog
 
-
             this.BlogList.Add(new UserBlogInfo(adminuser.Name, this.ServerUrlPrimary, this.BlogTitle));
 
             // Add Placeholder Content
-            if (this.Options.CreateSampleContent)
+            if (this.Options.CreateSampleContent && this.PostList.Count < 1)
             {
-                /*
+
                 var cats1 = new[] {"sports","biology", "office supplies"};
                 var cats2 = new[] {"food"};
                 var cats3 = new[] {"food" };
@@ -88,11 +87,8 @@ namespace MetaWeblog.Portable.Server
                 this.PostList.Add(new System.DateTime(2012, 1, 15), "Why Pizza is Great", lipsum, cats2, true);
                 this.PostList.Add(new System.DateTime(2013, 4, 10), "Sandwiches I have loved", lipsum, cats3, true);
                 this.PostList.Add(new System.DateTime(2013, 3, 31), "Useful Things You Can Do With a Giraffe", lipsum, cats4, true);
-                 * */
             }
-
-
-            
+           
         }
 
         private void WriteLogMethodName()
@@ -171,7 +167,7 @@ namespace MetaWeblog.Portable.Server
             WriteLog("Read {0} characters from input stream", body.Length);
             WriteLog("Parsing body ");
             var methodcall = MetaWeblog.Portable.XmlRpc.MethodCall.Parse(body);
-            WriteLog("METHODCALL {0}", methodcall);
+            WriteLog("METHODCALL {0}", methodcall.Name);
 
             Console.WriteLine("Method Name: {0}", methodcall.Name);
 
@@ -194,6 +190,11 @@ namespace MetaWeblog.Portable.Server
             else if (methodcall.Name == "metaWeblog.editPost")
             {
                 handle_metaWeblog_editPost(context, methodcall);
+            }
+            else if (methodcall.Name == "metaWeblog.deletePost" || methodcall.Name == "blogger.deletePost")
+            {
+                // Windows Live Writer seems to only send blogger.deletPost
+                handle_metaWeblog_deletePost(context, methodcall);
             }
             else if (methodcall.Name == "metaWeblog.getCategories")
             {
@@ -354,9 +355,12 @@ namespace MetaWeblog.Portable.Server
             var el_body = xdoc.Element("html").Element("body");
             var el_title = el_body.AddH1Element("Debug Page");
 
-            foreach (var post in this.PostList)
+            foreach (var kv in this.PostList.Dictionary)
             {
+                var post = kv.Value;
+                var key = kv.Key;
                 el_body.AddH1Element(post.Title);
+                el_body.AddParagraphElement(string.Format("Key=\"{0}\"", key));
                 el_body.AddParagraphElement(string.Format("Title=\"{0}\"", post.Title));
                 el_body.AddParagraphElement(string.Format("Link=\"{0}\"", post.Link));
                 el_body.AddParagraphElement(string.Format("Permalin=\"{0}\"", post.Permalink));
@@ -419,30 +423,29 @@ namespace MetaWeblog.Portable.Server
             if (post == null)
             {
                 // Post was not found
-                respond_error_invalid_postid_parameter(context);
+                respond_error_invalid_postid_parameter(context, 200);
+                return;
             }
-            else
-            {
-                // Post was found
-                respond_post(context, post);
-            }
+
+            // Post was found
+            respond_post(context, post.Value);
         }
 
-        private void respond_post(HttpListenerContext context, PostInfo post)
+        private void respond_post(HttpListenerContext context, PostInfoRecord post)
         {
             var method_response = new XmlRpc.MethodResponse();
-            var struct_ = post.ToStruct();
+            var struct_ = post.ToPostInfo().ToStruct();
             method_response.Parameters.Add(struct_);
             WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
         }
 
-        private void respond_error_invalid_postid_parameter(HttpListenerContext context)
+        private void respond_error_invalid_postid_parameter(HttpListenerContext context, int status_code)
         {
             var f = new XmlRpc.Fault();
             f.FaultCode = 2041;
             f.FaultString = string.Format("Invalid postid parameter");
 
-            WriteResponseString(context, f.CreateDocument().ToString(), 200);
+            WriteResponseString(context, f.CreateDocument().ToString(), status_code);
         }
 
 
@@ -544,6 +547,37 @@ namespace MetaWeblog.Portable.Server
             return new_title;
         }
 
+        private void handle_metaWeblog_deletePost(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
+        {
+            var appkey = (XmlRpc.StringValue)methodcall.Parameters[0];
+            var postid = (XmlRpc.StringValue)methodcall.Parameters[1];
+            var username = (XmlRpc.StringValue)methodcall.Parameters[2];
+            var password = (XmlRpc.StringValue)methodcall.Parameters[3];
+
+            this.WriteLog("AppKey = {0}", postid.String);
+            this.WriteLog("PostId = {0}", postid.String);
+            this.WriteLog("Username = {0}", username.String);
+
+            var post = this.PostList.TryGetPostById(postid.String);
+
+            if (post == null)
+            {
+                this.WriteLog("No such Post with ID {0}", postid.String);
+                // Post was not found
+                respond_error_invalid_postid_parameter(context, 404);
+                return;
+            }
+
+            // Post was found
+            this.WriteLog("Found Post with ID {0}", postid.String);
+            this.PostList.Delete(post.Value);
+
+            var method_response = new XmlRpc.MethodResponse();
+            method_response.Parameters.Add(true); // this is supposed to always return true
+            WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
+        }
+
+
         private void handle_metaWeblog_editPost(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
         {
             var postid = (XmlRpc.StringValue)methodcall.Parameters[0];
@@ -561,45 +595,47 @@ namespace MetaWeblog.Portable.Server
             if (post == null)
             {
                 // Post was not found
-                respond_error_invalid_postid_parameter(context);
+                respond_error_invalid_postid_parameter(context, 200);
+                return;
+            }
+            var newpost = post.Value;
+
+            // Post was found
+            var post_title = struct_.Get<XmlRpc.StringValue>("title",null);
+            if (post_title.String != null)
+            {
+                newpost.Title = clean_post_title(post_title.String);
+            }
+
+            var post_description = struct_.Get<XmlRpc.StringValue>("description", null);
+            if (post_description.String != null)
+            {
+                newpost.Description = post_description.String;
+            }
+
+
+            var post_categories = struct_.Get<XmlRpc.Array>("categories", null);
+            if (post_categories.Items != null)
+            {
+                // Reset the post categories
+                var cats = GetCategoriesFromArray(post_categories);
+                newpost.Categories = string.Join(";", cats);
+            }
+
+            if (publish.Boolean)
+            {
+                newpost.PostStatus = "published";
             }
             else
             {
-                // Post was found
-                var post_title = struct_.Get<XmlRpc.StringValue>("title",null);
-                if (post_title.String != null)
-                {
-                    post.Title = clean_post_title(post_title.String);
-                }
-
-                var post_description = struct_.Get<XmlRpc.StringValue>("description", null);
-                if (post_description.String != null)
-                {
-                    post.Description = post_description.String;
-                }
-
-
-                var post_categories = struct_.Get<XmlRpc.Array>("categories", null);
-                if (post_categories.Items != null)
-                {
-                    // Reset the post categories
-                    post.Categories.Clear();
-                    post.Categories.AddRange(GetCategoriesFromArray(post_categories));
-                }
-
-                if (publish.Boolean)
-                {
-                    post.PostStatus = "published";
-                }
-                else
-                {
-                    post.PostStatus = "draft";                    
-                }
-                
-                var method_response = new XmlRpc.MethodResponse();
-                method_response.Parameters.Add(true); // this is supposed to always return true
-                WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
+                newpost.PostStatus = "draft";                    
             }
+
+            this.PostList.Dictionary[newpost.PostId] = newpost;
+                
+            var method_response = new XmlRpc.MethodResponse();
+            method_response.Parameters.Add(true); // this is supposed to always return true
+            WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
         }
 
         private void handle_metaWeblog_getRecentPosts(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
