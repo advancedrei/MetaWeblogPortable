@@ -52,7 +52,7 @@ namespace MetaWeblog.Server
             this.ServerUrlSecondary = string.Format("http://{0}:{1}/", "localhost", this.Options.Port);
 
             // The title of the blog will be based on the class name
-            this.BlogTitle = this.GetType().Name;
+            this.BlogTitle = "Untitled Blog";
 
             // This server will contain a single user
 
@@ -114,7 +114,7 @@ namespace MetaWeblog.Server
 
             HttpListener.Start();
             Listen();
-            Console.WriteLine("{0} Listening...", this.GetType().Name );
+            Console.WriteLine("{0} Listening...", typeof(BlogServer).Name );
             Console.WriteLine("Press any key to exit...");
             Console.ReadKey();
         }
@@ -123,7 +123,7 @@ namespace MetaWeblog.Server
         {
             // Get the absolute path to be used as the logfile
             // note that the filename will be based on the class name
-            string basename = this.GetType().Name + ".txt";
+            string basename = typeof(BlogServer) + ".txt";
             string logfilename = System.IO.Path.Combine(this.Options.OutputFolder, basename);
             return logfilename;
         }
