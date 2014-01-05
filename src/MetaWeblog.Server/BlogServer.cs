@@ -46,12 +46,18 @@ namespace MetaWeblog.Server
             }
             LogStream.AutoFlush = true;
 
+            this.WriteLog("----------------------------------------");
+            this.WriteLog("Start New Server Session ");
+            this.WriteLog("----------------------------------------");
+
             this.HostName = Environment.MachineName.ToLower();
             // The Primary url is what will normally be used
             // However the server supports using localhost as well
             this.ServerUrlPrimary = string.Format("http://{0}:{1}/", HostName, this.Options.Port);
             this.ServerUrlSecondary = string.Format("http://{0}:{1}/", "localhost", this.Options.Port);
 
+            this.WriteLog("Primary Url: {0}", this.ServerUrlPrimary);
+            this.WriteLog("Secondary Url: {0}", this.ServerUrlSecondary);
             // The title of the blog will be based on the class name
             this.BlogTitle = "Untitled Blog";
 
@@ -155,6 +161,11 @@ namespace MetaWeblog.Server
                 WriteLog("Client Connected");
                 WriteLog("Request Url: {0}",context.Request.Url);
                 WriteLog("Request Url Absolute Path: {0}", context.Request.Url.AbsolutePath);
+                WriteLog("Request Url Path and Query: {0}", context.Request.Url.PathAndQuery);
+                WriteLog("Request UserAgent: {0}", context.Request.UserAgent);
+                WriteLog("Request UserHostAddress: {0}", context.Request.UserHostAddress);
+                WriteLog("Request UserHostName: {0}", context.Request.UserHostName);
+                WriteLog("Request UserLanguages: {0}", context.Request.UserLanguages == null ? "" : string.Join(",", context.Request.UserLanguages));
                 ProcessRequest(context);
             }
 

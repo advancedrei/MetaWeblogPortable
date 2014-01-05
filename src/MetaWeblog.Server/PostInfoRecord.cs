@@ -29,15 +29,13 @@ namespace MetaWeblog.Server
             this.PostStatus = p.PostStatus;
             this.Permalink = p.Permalink;
             this.Description = p.Description;
-            this.Categories = String.Join(";",p.Categories.Select(s=>s.Trim()));
+            this.Categories = BlogServer.join_cat_strings(p.Categories.Select(s=>s.Trim()));
         }
 
         internal string[] SplitCategories()
         {
-            var cats = this.Categories.Split(new char[] { ';' });
-            return cats;
+            return BlogServer.split_cat_strings(this.Categories);
         }
-
 
         public MP.PostInfo ToPostInfo()
         {

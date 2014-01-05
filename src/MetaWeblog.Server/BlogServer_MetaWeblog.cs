@@ -250,7 +250,7 @@ namespace MetaWeblog.Server
             {
                 // Reset the post categories
                 var cats = GetCategoriesFromArray(post_categories);
-                newpost.Categories = string.Join(";", cats);
+                newpost.Categories = join_cat_strings(cats);
             }
 
             if (publish.Boolean)
@@ -267,6 +267,17 @@ namespace MetaWeblog.Server
             var method_response = new MP.XmlRpc.MethodResponse();
             method_response.Parameters.Add(true); // this is supposed to always return true
             WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
+        }
+
+        public static string join_cat_strings(IEnumerable<string> cats)
+        {
+            return string.Join(";", cats);
+        }
+
+        public static string[] split_cat_strings(string s)
+        {            
+            var cats = s.Split(new char[] { ';' });
+            return cats;
         }
 
         private void handle_metaWeblog_getRecentPosts(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
