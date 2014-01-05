@@ -151,12 +151,18 @@ namespace MetaWeblog.Portable.Server
 
             if (context.Request.Url.AbsolutePath == this.Options.MetaWeblogUrl)
             {
-
-                handle_xmlrpc_method(context);
+                if (context.Request.HttpMethod == "POST")
+                {
+                    handle_xmlrpc_method(context);                    
+                }
             }
             else
             {
-                handle_normal_request(context);
+                if (context.Request.HttpMethod == "GET")
+                {
+                    handle_normal_request(context);
+                    
+                }
             }
         }
 
