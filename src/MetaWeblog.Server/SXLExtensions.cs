@@ -36,7 +36,10 @@ namespace MetaWeblog.Server
         {
             var el_para = new System.Xml.Linq.XElement("p");
             el_body.Add(el_para);
-            el_para.Value = text;
+            if (text != null)
+            {
+                el_para.Value = text;                
+            }
             return el_para;
         }
 

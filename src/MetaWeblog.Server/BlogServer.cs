@@ -212,6 +212,10 @@ namespace MetaWeblog.Server
             {
                 handle_debug(context);
             }
+            else if (context.Request.Url.AbsolutePath.StartsWith("/category/"))
+            {
+                handle_category(context);
+            }
             else if (context.Request.Url.AbsolutePath.StartsWith(this.Options.PostUrl + "/"))
             {
                 handle_post(context);
@@ -231,7 +235,7 @@ namespace MetaWeblog.Server
             el_body.AddParagraphElement(string.Format("404 {0}", "Not found"));
             el_body.AddParagraphElement(string.Format("Url.AbvsolutePath {0}", context.Request.Url.AbsolutePath));
             el_body.AddParagraphElement(string.Format("Url.Query {0}", context.Request.Url.Query));
-            WriteResponseString(context, xdoc.ToString(), 404);
+            WriteResponseString(context, xdoc.ToString(), 404, "text/html");
         }
 
         private void handle_media(System.Net.HttpListenerContext context)
@@ -282,7 +286,7 @@ namespace MetaWeblog.Server
                 
             string html = xdoc.ToString();
             html = html.Replace(GetReplacementString(thepost.Value), thepost.Value.Description);
-            WriteResponseString(context, html, 200);
+            WriteResponseString(context, html, 200, "text/xml");
         }
 
         private SXL.XElement GetPostContentElement(PostInfoRecord thepost)
@@ -316,6 +320,12 @@ namespace MetaWeblog.Server
 
             el_para0.AddAnchorElement("/archive", "Archive");
 
+            foreach (var cat in this.CategoryList)
+            {
+                var p = el_body.AddParagraphElement();
+                p.AddAnchorElement(cat.HtmlUrl, cat.Name);
+            }
+
             foreach (var post in this.PostList)
             {
                 var el_para = el_body.AddParagraphElement();
@@ -330,7 +340,35 @@ namespace MetaWeblog.Server
                 html = html.Replace(replacement_string, post.Description);
             }
 
-            WriteResponseString(context, html, 200);
+            WriteResponseString(context, html, 200, "text/xml");
+        }
+
+        private void handle_category(System.Net.HttpListenerContext context)
+        {
+            var tokens = context.Request.Url.AbsolutePath.Split(new char[] {'/'});
+
+            this.WriteLogMethodName();
+
+            var xdoc = this.CreateHtmlDom();
+            var el_body = xdoc.Element("html").Element("body");
+            var el_title = el_body.AddH1Element("Debug Page");
+
+            el_body.AddH1Element("Posts");
+
+            foreach (var post in this.PostList)
+            {
+                var cats = BlogServer.split_cat_strings(post.Categories);
+                if (cats.Contains(tokens[tokens.Length - 1]))
+                {
+                    el_body.AddParagraphElement(string.Format("Title=\"{0}\"", post.Title));
+                    el_body.AddParagraphElement(string.Format("Link=\"{0}\"", post.Link));
+                    
+                }
+            }
+
+            string html = xdoc.ToString();
+
+            WriteResponseString(context, html, 200, "text/xml");
         }
 
         private void handle_debug(System.Net.HttpListenerContext context)
@@ -376,7 +414,7 @@ namespace MetaWeblog.Server
 
             string html = xdoc.ToString();
 
-            WriteResponseString(context, html, 200);
+            WriteResponseString(context, html, 200, "text/xml");
         }
 
         private void handle_blog_archive_page(System.Net.HttpListenerContext context)
@@ -399,7 +437,7 @@ namespace MetaWeblog.Server
 
                 el_para.AddAnchorElement(post.Link, post.Title);
             }
-            WriteResponseString(context, xdoc.ToString(), 200);
+            WriteResponseString(context, xdoc.ToString(), 200, "text/xml");
         }
 
 
@@ -409,7 +447,7 @@ namespace MetaWeblog.Server
             var method_response = new MP.XmlRpc.MethodResponse();
             var struct_ = post.ToPostInfo().ToStruct();
             method_response.Parameters.Add(struct_);
-            WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
+            WriteResponseString(context, method_response.CreateDocument().ToString(), 200, "text/xml");
         }
 
         private void respond_error_invalid_postid_parameter(System.Net.HttpListenerContext context, int status_code)
@@ -419,7 +457,7 @@ namespace MetaWeblog.Server
             f.FaultCode = 2041;
             f.FaultString = string.Format("Invalid postid parameter");
 
-            WriteResponseString(context, f.CreateDocument().ToString(), status_code);
+            WriteResponseString(context, f.CreateDocument().ToString(), status_code, "text/xml");
         }
 
         private List<string> GetCategoriesFromArray(MP.XmlRpc.Array post_categories)
@@ -459,7 +497,7 @@ namespace MetaWeblog.Server
             var el_head = new System.Xml.Linq.XElement("head");
             el_html.Add(el_head);
 
-            var el_style = new System.Xml.Linq.XElement("style");
+            var el_style = new System.Xml.Linq.XElement("style");.
             el_head.Add(el_style);
 
             el_style.Value = this.Options.StyleSheet;
@@ -484,11 +522,13 @@ namespace MetaWeblog.Server
             return method_response;
         }
 
-        private void WriteResponseString(System.Net.HttpListenerContext context, string text, int status_code)
+        private void WriteResponseString(System.Net.HttpListenerContext context, string text, int status_code, string content_type)
         {
             byte[] bytes = System.Text.Encoding.UTF8.GetBytes(text);
             context.Response.StatusCode = status_code;
             context.Response.KeepAlive = false;
+            context.Response.ContentEncoding = System.Text.Encoding.UTF8;
+            context.Response.ContentType = content_type;
             context.Response.ContentLength64 = bytes.Length;
 
             var output = context.Response.OutputStream;

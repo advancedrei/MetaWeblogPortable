@@ -71,7 +71,7 @@ namespace MetaWeblog.Server
             f.FaultCode = 0;
             f.FaultString = string.Format("unsupported method {0}", methodcall.Name);
 
-            WriteResponseString(context, f.CreateDocument().ToString(), 200);
+            WriteResponseString(context, f.CreateDocument().ToString(), 200, "text/xml");
         }
 
         private void handle_metaWeblog_getPost(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
@@ -131,7 +131,7 @@ namespace MetaWeblog.Server
             string response_body = method_response.CreateDocument().ToString();
 
             this.WriteLog(response_body);
-            WriteResponseString(context, response_body, 200);
+            WriteResponseString(context, response_body, 200, "text/xml");
         }
 
         public static void CreateFolderSafe(string f1)
@@ -171,7 +171,7 @@ namespace MetaWeblog.Server
             method_response.Parameters.Add(new_post.PostId);
 
             this.WriteLog("New Post Created with ID = {0}", new_post.PostId);
-            WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
+            WriteResponseString(context, method_response.CreateDocument().ToString(), 200, "text/xml");
         }
 
         private void handle_metaWeblog_deletePost(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
@@ -203,7 +203,7 @@ namespace MetaWeblog.Server
 
             var method_response = new MP.XmlRpc.MethodResponse();
             method_response.Parameters.Add(true); // this is supposed to always return true
-            WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
+            WriteResponseString(context, method_response.CreateDocument().ToString(), 200, "text/xml");
         }
 
 
@@ -266,7 +266,7 @@ namespace MetaWeblog.Server
 
             var method_response = new MP.XmlRpc.MethodResponse();
             method_response.Parameters.Add(true); // this is supposed to always return true
-            WriteResponseString(context, method_response.CreateDocument().ToString(), 200);
+            WriteResponseString(context, method_response.CreateDocument().ToString(), 200, "text/xml");
         }
 
         public static string join_cat_strings(IEnumerable<string> cats)
@@ -288,7 +288,7 @@ namespace MetaWeblog.Server
             var method_response_xml = method_response.CreateDocument();
             var method_response_string = method_response_xml.ToString();
 
-            WriteResponseString(context, method_response_string, 200);
+            WriteResponseString(context, method_response_string, 200, "text/xml");
         }
 
         private void handle_blogger_getUsersBlog(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
@@ -299,7 +299,7 @@ namespace MetaWeblog.Server
             var method_response_xml = method_response.CreateDocument();
             var method_response_string = method_response_xml.ToString();
 
-            WriteResponseString(context, method_response_string, 200);
+            WriteResponseString(context, method_response_string, 200, "text/xml");
         }
 
         private void handle_blogger_getCategories(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
@@ -310,7 +310,7 @@ namespace MetaWeblog.Server
             var method_response_xml = method_response.CreateDocument();
             var method_response_string = method_response_xml.ToString();
 
-            WriteResponseString(context, method_response_string, 200);
+            WriteResponseString(context, method_response_string, 200, "text/xml");
         }
 
     }
