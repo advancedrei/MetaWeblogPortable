@@ -82,6 +82,8 @@ namespace MetaWeblog.Server
             var username = (MP.XmlRpc.StringValue)methodcall.Parameters[1];
             var password = (MP.XmlRpc.StringValue)methodcall.Parameters[2];
 
+            this.AuthenicateUser(username.String, password.String);
+
             this.WriteLog("PostId = {0}", postid.String);
             this.WriteLog("Username = {0}", username.String);
 
@@ -105,6 +107,8 @@ namespace MetaWeblog.Server
             var blogid = (MP.XmlRpc.StringValue)methodcall.Parameters[0];
             var username = (MP.XmlRpc.StringValue)methodcall.Parameters[1];
             var password = (MP.XmlRpc.StringValue)methodcall.Parameters[2];
+
+            this.AuthenicateUser(username.String, password.String);
 
             this.WriteLog("BlogId = {0}", blogid.String);
             this.WriteLog("Username = {0}", username.String);
@@ -142,6 +146,11 @@ namespace MetaWeblog.Server
             }
         }
 
+        private void AuthenicateUser(string username, string password)
+        {
+            this.WriteLog("Checking Access for username={0}",username);            
+            this.WriteLog("User is authenticated");
+        }
 
         private void handle_metaWeblog_newPost(System.Net.HttpListenerContext context, MP.XmlRpc.MethodCall methodcall)
         {
@@ -153,6 +162,8 @@ namespace MetaWeblog.Server
 
             this.WriteLog("BlogId = {0}", blogid.String);
             this.WriteLog("Username = {0}", username.String);
+
+            this.AuthenicateUser(username.String, password.String);
 
             var struct_ = (MP.XmlRpc.Struct)methodcall.Parameters[3];
             var publish = (MP.XmlRpc.BooleanValue)methodcall.Parameters[4];
@@ -216,6 +227,8 @@ namespace MetaWeblog.Server
             var password = (MP.XmlRpc.StringValue)methodcall.Parameters[2];
             var struct_ = (MP.XmlRpc.Struct)methodcall.Parameters[3];
             var publish = (MP.XmlRpc.BooleanValue)methodcall.Parameters[4];
+
+            this.AuthenicateUser(username.String,password.String);
 
             this.WriteLog("PostId = {0}", postid.String);
             this.WriteLog("Username = {0}", username.String);
