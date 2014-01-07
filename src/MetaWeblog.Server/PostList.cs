@@ -18,12 +18,20 @@ namespace MetaWeblog.Server
             this.Dictionary.Flush();
         }
 
+
+        private string clean_post_title(string title)
+        {
+            string new_title = title;
+            new_title = StringUtils.CollapseWhiteSpace(new_title);
+            return new_title;
+        }
+
         public MP.PostInfo Add(DateTime? created, string title, string desc, IList<string> cats, bool publish)
         {
             var p = new MP.PostInfo();
             p.DateCreated = created != null ? created.Value : System.DateTime.Now;
 
-            p.Title = title;
+            p.Title =  clean_post_title(title);
             p.Description = desc;
             p.PostId = System.DateTime.Now.Ticks.ToString();
             p.Link = "/post/" + this.TitleToPostId(p.Title);
@@ -44,6 +52,50 @@ namespace MetaWeblog.Server
 
             return p;
         }
+
+        public void Edit(string postid,DateTime? created, string title, string desc, IList<string> cats, bool publish)
+        {
+            var post = this.TryGetPostById(postid);
+
+            if (post == null)
+            {
+                // Post was not found
+                throw new System.ArgumentException("Post Not Found");
+                //respond_error_invalid_postid_parameter(context, 200);
+            }
+
+            var newpost = post.Value;
+
+            if (title != null)
+            {
+                newpost.Title = title;
+            }
+
+            if (desc != null)
+            {
+                newpost.Description = desc;
+            }
+
+            if (cats != null)
+            {
+                // Reset the post categories
+                newpost.Categories = BlogServer.join_cat_strings(cats);
+            }
+
+            if (publish)
+            {
+                newpost.PostStatus = "published";
+            }
+            else
+            {
+                newpost.PostStatus = "draft";
+            }
+
+            this.Dictionary[newpost.PostId] = newpost;
+
+
+        }
+
 
         private string TitleToPostId(string t)
         {

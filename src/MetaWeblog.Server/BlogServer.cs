@@ -232,14 +232,6 @@ namespace MetaWeblog.Server
             }
             return cats;
         }
-
-        private string clean_post_title(string title)
-        {
-            string new_title = title;
-            new_title = StringUtils.CollapseWhiteSpace(new_title);
-            return new_title;
-        }
-
         public MP.XmlRpc.MethodResponse BuildStructArrayResponse(IEnumerable<MP.XmlRpc.Struct> structs)
         {
             var method_response = new MP.XmlRpc.MethodResponse();

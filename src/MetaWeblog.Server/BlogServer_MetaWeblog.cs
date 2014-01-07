@@ -168,7 +168,7 @@ namespace MetaWeblog.Server
             var struct_ = (MP.XmlRpc.Struct)methodcall.Parameters[3];
             var publish = (MP.XmlRpc.BooleanValue)methodcall.Parameters[4];
             var post_title = struct_.Get<MP.XmlRpc.StringValue>("title").String;
-            post_title = clean_post_title(post_title);
+
 
             var post_description = struct_.Get<MP.XmlRpc.StringValue>("description");
             var post_categories = struct_.Get<MP.XmlRpc.Array>("categories", null);
@@ -234,48 +234,14 @@ namespace MetaWeblog.Server
             this.WriteLog("Username = {0}", username.String);
             this.WriteLog("Publish = {0}", publish.Boolean);
 
-            var post = this.PostList.TryGetPostById(postid.String);
-
-            if (post == null)
-            {
-                // Post was not found
-                respond_error_invalid_postid_parameter(context, 200);
-                return;
-            }
-            var newpost = post.Value;
-
             // Post was found
             var post_title = struct_.Get<MP.XmlRpc.StringValue>("title", null);
-            if (post_title.String != null)
-            {
-                newpost.Title = clean_post_title(post_title.String);
-            }
-
             var post_description = struct_.Get<MP.XmlRpc.StringValue>("description", null);
-            if (post_description.String != null)
-            {
-                newpost.Description = post_description.String;
-            }
-
-
             var post_categories = struct_.Get<MP.XmlRpc.Array>("categories", null);
-            if (post_categories.Items != null)
-            {
-                // Reset the post categories
-                var cats = GetCategoriesFromArray(post_categories);
-                newpost.Categories = join_cat_strings(cats);
-            }
 
-            if (publish.Boolean)
-            {
-                newpost.PostStatus = "published";
-            }
-            else
-            {
-                newpost.PostStatus = "draft";
-            }
-
-            this.PostList.Dictionary[newpost.PostId] = newpost;
+            var cats = GetCategoriesFromArray(post_categories);
+ 
+            this.PostList.Edit(postid.String, null, post_title.String, post_description.String, cats, publish.Boolean);
 
             var method_response = new MP.XmlRpc.MethodResponse();
             method_response.Parameters.Add(true); // this is supposed to always return true
