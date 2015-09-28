@@ -62,7 +62,7 @@ namespace MetaWeblog.Portable
                         UserId = s.Get("userid", StringValue.NullString).String,
                         CommentCount = s.Get<IntegerValue>("commentCount", 0).Integer,
                         PostStatus = s.Get("post_status", StringValue.NullString).String,
-                        Permalink = s.Get("permaLink", StringValue.NullString).String,
+                        Permalink = s.Get("permaLink", StringValue.NullString).String ?? s.Get("permalink", StringValue.NullString).String,
                         Description = s.Get("description", StringValue.NullString).String
                     }).ToList();
         }
@@ -122,7 +122,7 @@ namespace MetaWeblog.Portable
                 Description = _struct.Get<StringValue>("description").String,
                 Link = _struct.Get("link", StringValue.NullString).String,
                 DateCreated = _struct.Get<DateTimeValue>("dateCreated").Data,
-                Permalink = _struct.Get("permaLink", StringValue.NullString).String,
+                Permalink = _struct.Get("permaLink", StringValue.NullString).String ?? _struct.Get("permalink", StringValue.NullString).String,
                 PostStatus = _struct.Get("post_status", StringValue.NullString).String,
                 Title = _struct.Get<StringValue>("title").String,
                 UserId = _struct.Get("userid", StringValue.NullString).String
